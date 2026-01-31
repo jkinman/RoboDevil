@@ -59,6 +59,9 @@ async function poll() {
     const decision = handleResponse(response);
     process.stdout.write(JSON.stringify(decision) + "\n");
     sendStateUpdate("talking");
+    setTimeout(() => {
+      sendStateUpdate("idle");
+    }, 1000);
   }
 }
 

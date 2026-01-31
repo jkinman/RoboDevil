@@ -7,6 +7,7 @@ Selects TTS provider (Inworld primary, local fallback), plays audio, and emits
 - Routing rules implemented in `src/router.js`.
 - Unit tests verify provider selection.
 - Polls IPC bridge `/responses` for OpenClaw output.
+- Emits `talking` then `idle` (placeholder timing).
 
 ## Planned
 - Audio playback + provider API integrations.
