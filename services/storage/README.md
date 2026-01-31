@@ -3,3 +3,12 @@
 SQLite access layer for structured data IO. This service owns the database file
 and provides a simple API for other services to write/read events, tasks, and
 state logs.
+
+## Status
+- HTTP endpoints: `GET /health`, `GET /events`, `POST /events`.
+- Migrations in `migrations/` with `_migrations` tracking.
+- Unit tests cover health + event writes.
+
+## Planned
+- IPC integration (for services that cannot call HTTP).
+- Additional data tables as requirements solidify.

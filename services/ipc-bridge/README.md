@@ -5,3 +5,12 @@ Local IPC entrypoint that accepts state updates over:
 - Localhost HTTP for dashboard access
 
 This service is intentionally minimal and keeps only a small in-memory history.
+
+## Status
+- Accepts `/state` via HTTP and UNIX socket.
+- Optional auth token (`IPC_AUTH_TOKEN`) for HTTP and socket payloads.
+- Message validation enforces required fields + allowed states.
+
+## Planned
+- Forward state updates to storage service.
+- Expose richer `/stats` aggregation for dashboard.
