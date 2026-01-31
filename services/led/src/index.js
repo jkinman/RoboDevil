@@ -1,4 +1,4 @@
-const net = require("net");
+const http = require("http");
 const {
   DEFAULT_STATE,
   shouldExpire,
@@ -6,7 +6,9 @@ const {
 } = require("./stateMachine");
 
 let currentState = { ...DEFAULT_STATE };
-const socketPath = process.env.IPC_SOCKET_PATH || "/tmp/robodevil_state.sock";
+const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
+const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
+const ipcToken = process.env.IPC_AUTH_TOKEN || null;
 
 function updateState(update) {
   currentState = applyUpdate(currentState, update);
@@ -23,29 +25,42 @@ setInterval(tick, 500);
 
 console.log("[led] Ready", { state: currentState.state });
 
-// IPC subscription: listen for state updates from IPC bridge.
-const server = net.createServer((socket) => {
-  let data = "";
-  socket.on("data", (chunk) => {
-    data += chunk.toString();
-  });
-  socket.on("end", () => {
-    try {
-      const update = JSON.parse(data);
-      updateState(update);
-    } catch (error) {
-      // ignore invalid input for now
+function pollLatestState() {
+  const req = http.request(
+    {
+      method: "GET",
+      host: ipcHost,
+      port: ipcPort,
+      path: "/logs",
+      headers: {
+        ...(ipcToken ? { Authorization: `Bearer ${ipcToken}` } : {})
+      }
+    },
+    (res) => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data || "{}");
+          const entries = parsed.entries || [];
+          const last = entries[entries.length - 1];
+          if (last) {
+            updateState(last);
+          }
+        } catch (error) {
+          // ignore parse errors
+        }
+      });
     }
-  });
-});
+  );
 
-if (require("fs").existsSync(socketPath)) {
-  require("fs").unlinkSync(socketPath);
+  req.on("error", () => {});
+  req.end();
 }
 
-server.listen(socketPath, () => {
-  console.log("[led] Listening", { socketPath });
-});
+setInterval(pollLatestState, 1000);
 
 // Temporary: accept JSON state updates via stdin for manual testing.
 process.stdin.setEncoding("utf8");
