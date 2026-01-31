@@ -26,6 +26,21 @@ Copy `.env.example` to `.env` and adjust as needed:
 cp .env.example .env
 ```
 
+## OpenClaw Setup (macOS/Linux)
+
+Run the setup helper:
+
+```bash
+npm run openclaw:setup
+```
+
+Then complete the interactive steps in your terminal:
+
+```bash
+openclaw setup
+openclaw gateway --port 18789
+```
+
 ## IPC Data Flow
 
 ```mermaid

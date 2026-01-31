@@ -12,6 +12,7 @@
     "restart": "pm2 restart pm2.ecosystem.config.js",
     "status": "pm2 status",
     "test": "npm -ws test && node --test tests/integration",
-    "dev": "node scripts/dev.js"
+    "dev": "node scripts/dev.js",
+    "openclaw:setup": "bash scripts/setup-openclaw.sh"
   }
 }
