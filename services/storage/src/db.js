@@ -52,4 +52,10 @@ function runMigrations(db, migrationsDir) {
   }
 }
 
-module.exports = { createDatabase, runMigrations };
+function cleanupEvents(db, cutoffIso) {
+  return db
+    .prepare("DELETE FROM events WHERE created_at < ?")
+    .run(cutoffIso).changes;
+}
+
+module.exports = { createDatabase, runMigrations, cleanupEvents };

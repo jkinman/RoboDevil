@@ -9,6 +9,7 @@ state logs.
 - Migrations in `migrations/` with `_migrations` tracking.
 - Unit tests cover health + event writes.
 - Migration draft includes conversations, messages, actions tables.
+- Event retention cleanup runs hourly (default 30 days).
 
 ## Planned
 - IPC integration (optional). Local-only UNIX socket for internal services if we later want to avoid HTTP.
