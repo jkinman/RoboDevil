@@ -3,11 +3,14 @@ const net = require("net");
 const http = require("http");
 const path = require("path");
 const { validateMessage } = require("./validateMessage");
+const { sendEvent } = require("./storageClient");
 
 const unixSocketPath = process.env.IPC_SOCKET_PATH || "/tmp/robodevil_state.sock";
 const httpHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
 const httpPort = Number(process.env.IPC_HTTP_PORT || 17171);
 const authToken = process.env.IPC_AUTH_TOKEN || null;
+const storageHost = process.env.STORAGE_HTTP_HOST || "127.0.0.1";
+const storagePort = Number(process.env.STORAGE_HTTP_PORT || 17172);
 
 const stateHistory = [];
 const maxHistory = 200;
@@ -17,6 +20,15 @@ function recordState(entry) {
   if (stateHistory.length > maxHistory) {
     stateHistory.shift();
   }
+}
+
+function forwardToStorage(entry) {
+  const event = {
+    type: "state_update",
+    payload: entry
+  };
+
+  sendEvent({ host: storageHost, port: storagePort, event });
 }
 
 function parseJsonBody(req, callback) {
@@ -88,7 +100,9 @@ function createHttpServer() {
           return sendJson(res, 400, { error: result.error });
         }
 
-        recordState({ ...payload, receivedAt: new Date().toISOString() });
+        const entry = { ...payload, receivedAt: new Date().toISOString() };
+        recordState(entry);
+        forwardToStorage(entry);
         return sendJson(res, 200, { ok: true });
       });
     }
@@ -142,7 +156,9 @@ function createUnixServer() {
         return socket.end();
       }
 
-      recordState({ ...payload, receivedAt: new Date().toISOString() });
+      const entry = { ...payload, receivedAt: new Date().toISOString() };
+      recordState(entry);
+      forwardToStorage(entry);
       socket.write(JSON.stringify({ ok: true }));
       socket.end();
     });

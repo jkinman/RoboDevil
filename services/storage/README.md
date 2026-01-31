@@ -10,5 +10,5 @@ state logs.
 - Unit tests cover health + event writes.
 
 ## Planned
-- IPC integration (for services that cannot call HTTP).
+- IPC integration (optional). Local-only UNIX socket for internal services if we later want to avoid HTTP.
 - Additional data tables as requirements solidify.

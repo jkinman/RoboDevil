@@ -12,5 +12,4 @@ This service is intentionally minimal and keeps only a small in-memory history.
 - Message validation enforces required fields + allowed states.
 
 ## Planned
-- Forward state updates to storage service.
 - Expose richer `/stats` aggregation for dashboard.
