@@ -36,6 +36,9 @@ Aggregated metrics:
 Query logs with filters:
 - `service`, `level`, `since`, `limit`
 
+Supported IPC filters:
+- `state`, `source`, `since`, `limit`, `offset`
+
 ### POST /config
 Update config fields:
 - `tts.mode`, `tts.demonicIntensity`, `wakeWords`, `customActions`

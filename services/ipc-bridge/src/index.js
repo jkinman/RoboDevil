@@ -3,6 +3,7 @@ const net = require("net");
 const http = require("http");
 const path = require("path");
 const { validateMessage } = require("./validateMessage");
+const { buildLogPage } = require("./logQuery");
 const { sendEvent } = require("./storageClient");
 const { startHealthPing } = require("../../common/healthPing");
 
@@ -90,10 +91,23 @@ function createHttpServer() {
       });
     }
 
-    if (req.method === "GET" && req.url === "/logs") {
-      return sendJson(res, 200, {
-        entries: stateHistory.slice(-50)
+    if (req.method === "GET" && req.url.startsWith("/logs")) {
+      const url = new URL(req.url, `http://${httpHost}:${httpPort}`);
+      const limit = Math.min(Number(url.searchParams.get("limit") || 50), 500);
+      const offset = Math.max(Number(url.searchParams.get("offset") || 0), 0);
+      const state = url.searchParams.get("state") || null;
+      const source = url.searchParams.get("source") || null;
+      const since = url.searchParams.get("since") || null;
+
+      const page = buildLogPage(stateHistory, {
+        limit,
+        offset,
+        state,
+        source,
+        since
       });
+
+      return sendJson(res, 200, page);
     }
 
     if (req.method === "POST" && req.url === "/responses") {

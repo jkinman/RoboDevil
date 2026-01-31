@@ -104,3 +104,22 @@ test("health endpoint accepts service status", async () => {
 
   server.close();
 });
+
+test("logs query filters and paginates", () => {
+  const { buildLogPage } = require("../src/logQuery");
+  const history = [
+    { state: "thinking", source: "stt", timestamp: "2026-01-01T00:00:00Z" },
+    { state: "talking", source: "tts-router", timestamp: "2026-01-01T00:00:05Z" },
+    { state: "thinking", source: "stt", timestamp: "2026-01-01T00:00:10Z" }
+  ];
+
+  const page = buildLogPage(history, {
+    limit: 1,
+    offset: 0,
+    state: "thinking",
+    source: "stt"
+  });
+
+  assert.equal(page.entries.length, 1);
+  assert.equal(page.total, 2);
+});
