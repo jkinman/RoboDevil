@@ -1,5 +1,6 @@
 const http = require("http");
 const { shouldResetState, resetToIdle } = require("./watchdog");
+const { startHealthPing } = require("../../common/healthPing");
 
 const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
 const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
@@ -98,4 +99,5 @@ function tick() {
 
 setInterval(tick, 1000);
 
+startHealthPing({ name: "orchestrator" });
 console.log("[orchestrator] Ready", { state: state.current.state });

@@ -2,6 +2,7 @@ const http = require("http");
 const { chooseProvider } = require("./router");
 const { fetchResponses } = require("./responsePoller");
 const { estimatePlaybackMs } = require("./playbackEstimator");
+const { startHealthPing } = require("../../common/healthPing");
 
 const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
 const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
@@ -66,5 +67,6 @@ async function poll() {
   }
 }
 
+startHealthPing({ name: "tts-router" });
 console.log("[tts-router] Ready");
 setInterval(poll, 1000);

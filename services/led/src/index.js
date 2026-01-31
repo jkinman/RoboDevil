@@ -4,6 +4,7 @@ const {
   shouldExpire,
   applyUpdate
 } = require("./stateMachine");
+const { startHealthPing } = require("../../common/healthPing");
 
 let currentState = { ...DEFAULT_STATE };
 const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
@@ -23,6 +24,7 @@ function tick() {
 
 setInterval(tick, 500);
 
+startHealthPing({ name: "led" });
 console.log("[led] Ready", { state: currentState.state });
 
 function pollLatestState() {

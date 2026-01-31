@@ -1,6 +1,7 @@
 const path = require("path");
 const { createDatabase, runMigrations, cleanupEvents } = require("./db");
 const { createServer } = require("./server");
+const { startHealthPing } = require("../../common/healthPing");
 
 const defaultDbPath = path.resolve(__dirname, "../../../data/robodevil.db");
 const dbPath = process.env.STORAGE_DB_PATH || defaultDbPath;
@@ -16,6 +17,8 @@ const server = createServer({ db });
 server.listen(httpPort, httpHost, () => {
   console.log("[storage] HTTP listening", { httpHost, httpPort, dbPath });
 });
+
+startHealthPing({ name: "storage" });
 
 function cleanupOldEvents() {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);

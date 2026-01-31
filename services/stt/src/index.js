@@ -1,10 +1,12 @@
 const http = require("http");
 const { buildStatePayload } = require("./ipcClient");
+const { startHealthPing } = require("../../common/healthPing");
 
 const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
 const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
 const ipcToken = process.env.IPC_AUTH_TOKEN || null;
 
+startHealthPing({ name: "stt" });
 console.log("[stt] Ready");
 
 // TODO: Replace with mic capture + Whisper transcription.

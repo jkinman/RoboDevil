@@ -18,6 +18,14 @@ contracts, TTS routing, process supervision, and testing.
 - The plan file is not modified during implementation.
 - Trello cards are captured in the plan doc; this repo focuses on the build spec.
 
+## Environment Variables
+
+Copy `.env.example` to `.env` and adjust as needed:
+
+```bash
+cp .env.example .env
+```
+
 ## IPC Data Flow
 
 ```mermaid
