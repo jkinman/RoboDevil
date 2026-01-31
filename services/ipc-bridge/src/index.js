@@ -4,6 +4,7 @@ const http = require("http");
 const path = require("path");
 const { validateMessage } = require("./validateMessage");
 const { sendEvent } = require("./storageClient");
+const { startHealthPing } = require("../../common/healthPing");
 
 const unixSocketPath = process.env.IPC_SOCKET_PATH || "/tmp/robodevil_state.sock";
 const httpHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
@@ -16,6 +17,8 @@ const stateHistory = [];
 const maxHistory = 200;
 const responseQueue = [];
 const healthMap = new Map();
+
+startHealthPing({ name: "ipc-bridge" });
 
 function recordState(entry) {
   stateHistory.push(entry);
