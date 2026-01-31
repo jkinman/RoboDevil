@@ -14,6 +14,7 @@ const storagePort = Number(process.env.STORAGE_HTTP_PORT || 17172);
 
 const stateHistory = [];
 const maxHistory = 200;
+const responseQueue = [];
 
 function recordState(entry) {
   stateHistory.push(entry);
@@ -87,6 +88,26 @@ function createHttpServer() {
       return sendJson(res, 200, {
         entries: stateHistory.slice(-50)
       });
+    }
+
+    if (req.method === "POST" && req.url === "/responses") {
+      return parseJsonBody(req, (error, payload) => {
+        if (error) {
+          return sendJson(res, 400, { error: "invalid json" });
+        }
+
+        if (!payload || typeof payload.text !== "string") {
+          return sendJson(res, 400, { error: "text is required" });
+        }
+
+        responseQueue.push({ ...payload, receivedAt: new Date().toISOString() });
+        return sendJson(res, 200, { ok: true });
+      });
+    }
+
+    if (req.method === "GET" && req.url === "/responses") {
+      const responses = responseQueue.splice(0, responseQueue.length);
+      return sendJson(res, 200, { responses });
     }
 
     if (req.method === "POST" && req.url === "/state") {

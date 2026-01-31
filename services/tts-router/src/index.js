@@ -1,5 +1,6 @@
 const http = require("http");
 const { chooseProvider } = require("./router");
+const { fetchResponses } = require("./responsePoller");
 
 const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
 const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
@@ -47,20 +48,19 @@ function sendStateUpdate(state) {
   req.end();
 }
 
-console.log("[tts-router] Ready");
+async function poll() {
+  const responses = await fetchResponses({
+    host: ipcHost,
+    port: ipcPort,
+    token: ipcToken
+  });
 
-// TODO: Replace with IPC subscription + TTS provider calls.
-// Temporary: accept JSON responses via stdin for manual testing.
-process.stdin.setEncoding("utf8");
-process.stdin.on("data", (chunk) => {
-  try {
-    const response = JSON.parse(chunk);
+  for (const response of responses) {
     const decision = handleResponse(response);
     process.stdout.write(JSON.stringify(decision) + "\n");
     sendStateUpdate("talking");
-  } catch (error) {
-    // ignore invalid input for now
   }
-});
+}
 
-setInterval(() => {}, 1 << 30);
+console.log("[tts-router] Ready");
+setInterval(poll, 1000);
