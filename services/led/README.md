@@ -9,5 +9,5 @@ fails safe to `idle` on timeout.
 - Runtime accepts JSON over stdin for manual testing.
 
 ## Planned
-- IPC subscription for state updates.
 - GPIO/PWM hardware integration.
+ - Replace standalone socket with IPC bridge subscription.
