@@ -7,6 +7,7 @@ const { validateMessage } = require("./validateMessage");
 const unixSocketPath = process.env.IPC_SOCKET_PATH || "/tmp/robodevil_state.sock";
 const httpHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
 const httpPort = Number(process.env.IPC_HTTP_PORT || 17171);
+const authToken = process.env.IPC_AUTH_TOKEN || null;
 
 const stateHistory = [];
 const maxHistory = 200;
@@ -42,8 +43,19 @@ function sendJson(res, statusCode, data) {
   res.end(json);
 }
 
+function isAuthorized(req) {
+  if (!authToken) {
+    return true;
+  }
+  const header = req.headers["authorization"];
+  return header === `Bearer ${authToken}`;
+}
+
 function createHttpServer() {
   return http.createServer((req, res) => {
+    if (!isAuthorized(req)) {
+      return sendJson(res, 401, { error: "unauthorized" });
+    }
     if (req.method === "GET" && req.url === "/health") {
       return sendJson(res, 200, {
         name: "ipc-bridge",
@@ -82,11 +94,18 @@ function createHttpServer() {
     }
 
     if (req.method === "GET" && req.url === "/config") {
-      return sendJson(res, 200, { message: "config stub" });
+      return sendJson(res, 200, {
+        ipc: {
+          transport: "dual",
+          socketPath: unixSocketPath,
+          httpHost,
+          httpPort
+        }
+      });
     }
 
     if (req.method === "POST" && req.url === "/config") {
-      return sendJson(res, 501, { error: "not implemented" });
+      return sendJson(res, 501, { error: "config updates not implemented" });
     }
 
     return sendJson(res, 404, { error: "not found" });
@@ -109,6 +128,11 @@ function createUnixServer() {
         payload = JSON.parse(data);
       } catch (error) {
         socket.write(JSON.stringify({ error: "invalid json" }));
+        return socket.end();
+      }
+
+      if (authToken && payload?.token !== authToken) {
+        socket.write(JSON.stringify({ error: "unauthorized" }));
         return socket.end();
       }
 

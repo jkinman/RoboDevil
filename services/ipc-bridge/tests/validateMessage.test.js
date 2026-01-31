@@ -21,3 +21,15 @@ test("validateMessage rejects missing fields", () => {
 
   assert.equal(result.ok, false);
 });
+
+test("validateMessage rejects invalid state", () => {
+  const result = validateMessage({
+    state: "bad",
+    source: "stt",
+    timestamp: "2026-01-31T00:00:00Z",
+    expiresAt: "2026-01-31T00:00:10Z",
+    sessionId: "abc"
+  });
+
+  assert.equal(result.ok, false);
+});
