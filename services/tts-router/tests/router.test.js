@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 const { chooseProvider } = require("../src/router");
 const { fetchResponses } = require("../src/responsePoller");
+const { estimatePlaybackMs } = require("../src/playbackEstimator");
 const http = require("http");
 
 test("routes to local when offline", () => {
@@ -35,4 +36,10 @@ test("fetchResponses returns array", async () => {
   const responses = await fetchResponses({ host: "127.0.0.1", port });
   assert.equal(responses.length, 1);
   server.close();
+});
+
+test("estimatePlaybackMs scales with text length", () => {
+  const short = estimatePlaybackMs("hi");
+  const long = estimatePlaybackMs("x".repeat(300));
+  assert.ok(long > short);
 });
