@@ -6,10 +6,11 @@
     "ipc": {
       "type": "object",
       "properties": {
-        "transport": { "type": "string", "enum": ["unix", "tcp"] },
+        "transport": { "type": "string", "enum": ["unix", "tcp", "dual"] },
         "socketPath": { "type": "string" },
         "host": { "type": "string" },
-        "port": { "type": "integer" }
+        "port": { "type": "integer" },
+        "httpPort": { "type": "integer" }
       },
       "required": ["transport"]
     },

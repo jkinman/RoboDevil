@@ -10,6 +10,9 @@
 
 **Consumes:** none (mic input only).
 
+**Health:**
+- Provide a health snapshot for dashboard (`status`, `uptimeSec`, `lastHeartbeat`).
+
 ## OpenClaw Core
 **Responsibility:** Process text requests, generate responses, emit response events.
 
@@ -18,6 +21,9 @@
 
 **Consumes:**
 - Text input from STT service and WhatsApp integration.
+
+**Health:**
+- Provide a health snapshot for dashboard (`status`, `uptimeSec`, `lastHeartbeat`).
 
 ## TTS Router
 **Responsibility:** Choose TTS provider, synthesize audio, play output.
@@ -30,6 +36,9 @@
 - `response_ready` from OpenClaw.
 - Optional system telemetry (internet status, CPU load).
 
+**Health:**
+- Provide a health snapshot for dashboard (`status`, `uptimeSec`, `lastHeartbeat`).
+
 ## LED Controller
 **Responsibility:** Own GPIO/PWM and render visual state.
 
@@ -39,8 +48,23 @@
 **Emits:**
 - Optional heartbeat or `idle` fail-safe when state expires.
 
+**Health:**
+- Provide a health snapshot for dashboard (`status`, `uptimeSec`, `lastHeartbeat`).
+
 ## Orchestrator (Optional)
 **Responsibility:** Validate state flow; enforce timeouts across services.
 
 **Consumes:** All state updates.
 **Emits:** `idle` on stuck-state recovery.
+
+**Health:**
+- Provide a health snapshot for dashboard (`status`, `uptimeSec`, `lastHeartbeat`).
+
+## Storage Service
+**Responsibility:** Own SQLite database and provide structured data access.
+
+**Emits:** none (initially).
+**Consumes:** write/read requests from other services (future IPC).
+
+**Health:**
+- Provide a health snapshot for dashboard (`status`, `uptimeSec`, `lastHeartbeat`, `dbPath`).

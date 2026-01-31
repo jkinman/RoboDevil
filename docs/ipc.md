@@ -22,8 +22,16 @@ All state updates use a single JSON message shape.
 ```
 
 ## Transport
-- Preferred: UNIX socket at `/tmp/robodevil_state.sock`.
-- Alternative: localhost TCP (`127.0.0.1:17171`) if socket permissions are an issue.
+- **Dual transport** (recommended):
+  - UNIX socket for service-to-service IPC.
+  - Localhost HTTP/TCP for dashboard access.
+- UNIX socket path: `/tmp/robodevil_state.sock`.
+- Localhost endpoint: `127.0.0.1:17171` (TCP) or `http://127.0.0.1:17171` (HTTP).
+
+### Dashboard Note
+Browsers cannot connect to UNIX sockets. If you plan a local dashboard,
+expose a localhost-only HTTP endpoint (not public) that bridges to the
+internal UNIX socket layer.
 
 ## Allowed State Transitions
 - `idle → listening → thinking → talking → idle`

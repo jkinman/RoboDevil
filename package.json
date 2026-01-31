@@ -1,0 +1,16 @@
+{
+  "name": "robodevil-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "services/*"
+  ],
+  "scripts": {
+    "install:all": "npm -ws install",
+    "start": "pm2 start pm2.ecosystem.config.js",
+    "stop": "pm2 stop pm2.ecosystem.config.js",
+    "restart": "pm2 restart pm2.ecosystem.config.js",
+    "status": "pm2 status",
+    "test": "npm -ws test"
+  }
+}

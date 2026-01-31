@@ -11,6 +11,8 @@ contracts, TTS routing, process supervision, and testing.
 - `docs/pm2-systemd.md` — pm2 ecosystem + systemd startup plan.
 - `docs/test-plan.md` — Closed-loop integration + failure tests.
 - `config/config.schema.json` — Central config schema for thresholds and providers.
+- `services/` — Service packages (STT, TTS router, LED, orchestrator, storage, ipc-bridge).
+- `package.json` — Root workspace scripts and tooling.
 
 ## Notes
 - The plan file is not modified during implementation.
