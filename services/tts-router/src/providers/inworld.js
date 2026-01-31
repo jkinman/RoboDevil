@@ -45,28 +45,45 @@ function ensureDir(filePath) {
 
 async function synthesize({ text }) {
   const baseUrl = process.env.INWORLD_BASE_URL;
+  const basicToken = process.env.INWORLD_BASIC;
   const key = process.env.INWORLD_JWT_KEY;
   const secret = process.env.INWORLD_SECRET;
-  if (!baseUrl || !key || !secret) {
-    throw new Error("missing Inworld JWT env vars");
+  if (!baseUrl) {
+    throw new Error("missing INWORLD_BASE_URL");
+  }
+  if (!basicToken && (!key || !secret)) {
+    throw new Error("missing Inworld auth env vars");
   }
 
-  const jwt = createJwt({ key, secret, audience: process.env.INWORLD_JWT_AUD });
+  const jwt = basicToken
+    ? null
+    : createJwt({ key, secret, audience: process.env.INWORLD_JWT_AUD });
   const voiceId = process.env.INWORLD_VOICE_ID;
-  const model = process.env.INWORLD_MODEL;
-  const orgId = process.env.INWORLD_ORG_ID;
+  const modelId = process.env.INWORLD_MODEL;
+  const workspaceId = process.env.INWORLD_WORKSPACE_ID;
+
+  const audioEncoding = process.env.INWORLD_AUDIO_ENCODING || "MP3";
+  const speakingRate = Number(process.env.INWORLD_SPEAKING_RATE || 1);
+  const temperature = Number(process.env.INWORLD_TEMPERATURE || 1);
 
   const body = {
     text,
-    voiceId,
-    model,
-    orgId
+    voice_id: voiceId,
+    model_id: modelId,
+    audio_config: {
+      audio_encoding: audioEncoding,
+      speaking_rate: speakingRate
+    },
+    temperature
   };
+  if (workspaceId) {
+    body.workspace_id = workspaceId;
+  }
 
   const res = await fetch(baseUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${jwt}`,
+      Authorization: basicToken ? `Basic ${basicToken}` : `Bearer ${jwt}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify(body)
@@ -83,8 +100,8 @@ async function synthesize({ text }) {
   } else {
     const payload = await res.json();
     const audio =
-      payload.audio_content ||
       payload.audioContent ||
+      payload.audio_content ||
       payload.audio ||
       "";
     if (!audio) {
