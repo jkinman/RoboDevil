@@ -6,8 +6,8 @@ states. Useful if you want extra safety beyond LED timeouts.
 ## Status
 - Watchdog expiry logic implemented in `src/watchdog.js`.
 - Unit tests cover reset behavior.
-- Runtime accepts JSON over stdin for manual testing.
+- Polls IPC `/logs` to track latest state.
+- Emits `idle` via IPC on timeout.
 
 ## Planned
-- IPC subscription for state updates.
-- Emit `idle` back through IPC on timeout.
+- Reduce polling once push-based updates exist.

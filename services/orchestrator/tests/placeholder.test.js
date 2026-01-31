@@ -18,3 +18,8 @@ test("resetToIdle returns idle state", () => {
   const idle = resetToIdle();
   assert.equal(idle.state, "idle");
 });
+
+test("resetToIdle clears expiresAt", () => {
+  const idle = resetToIdle();
+  assert.equal(idle.expiresAt, null);
+});
