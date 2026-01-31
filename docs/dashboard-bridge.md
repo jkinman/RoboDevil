@@ -49,3 +49,4 @@ Return current config snapshot.
 ## Notes
 - Log aggregation should be derived from the storage service.
 - Metrics can be sampled by the orchestrator or a dedicated metrics collector.
+- Use IPC bridge directly for local dashboards. Add a proxy backend only if remote access or stronger auth is needed later.
