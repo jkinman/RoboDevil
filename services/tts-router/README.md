@@ -9,5 +9,5 @@ Selects TTS provider (Inworld primary, local fallback), plays audio, and emits
 - Runtime currently accepts JSON over stdin for manual testing.
 
 ## Planned
-- IPC subscription for OpenClaw responses.
 - Audio playback + provider API integrations.
+ - Replace stdin testing with IPC subscription.
