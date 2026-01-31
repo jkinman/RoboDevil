@@ -1,0 +1,7 @@
+-- Initial schema
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL,
+  type TEXT NOT NULL,
+  payload TEXT NOT NULL
+);

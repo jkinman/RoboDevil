@@ -1,19 +1,17 @@
-const fs = require("fs");
 const path = require("path");
-const Database = require("better-sqlite3");
+const { createDatabase, runMigrations } = require("./db");
+const { createServer } = require("./server");
 
 const defaultDbPath = path.resolve(__dirname, "../../../data/robodevil.db");
 const dbPath = process.env.STORAGE_DB_PATH || defaultDbPath;
-const dbDir = path.dirname(dbPath);
+const db = createDatabase(dbPath);
+const migrationsDir = path.resolve(__dirname, "../migrations");
+runMigrations(db, migrationsDir);
 
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
+const httpHost = process.env.STORAGE_HTTP_HOST || "127.0.0.1";
+const httpPort = Number(process.env.STORAGE_HTTP_PORT || 17172);
 
-const db = new Database(dbPath);
-db.pragma("journal_mode = WAL");
-
-console.log("[storage] Ready", { dbPath });
-
-// TODO: Add IPC interface and schema migrations later.
-setInterval(() => {}, 1 << 30);
+const server = createServer({ db });
+server.listen(httpPort, httpHost, () => {
+  console.log("[storage] HTTP listening", { httpHost, httpPort, dbPath });
+});
