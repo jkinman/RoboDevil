@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RoboDevil Assistant Config",
+  "type": "object",
+  "properties": {
+    "ipc": {
+      "type": "object",
+      "properties": {
+        "transport": { "type": "string", "enum": ["unix", "tcp"] },
+        "socketPath": { "type": "string" },
+        "host": { "type": "string" },
+        "port": { "type": "integer" }
+      },
+      "required": ["transport"]
+    },
+    "stateTimeouts": {
+      "type": "object",
+      "properties": {
+        "listeningSec": { "type": "number" },
+        "thinkingSec": { "type": "number" },
+        "talkingBufferSec": { "type": "number" }
+      }
+    },
+    "tts": {
+      "type": "object",
+      "properties": {
+        "primaryProvider": { "type": "string", "enum": ["inworld"] },
+        "fallbackProvider": { "type": "string", "enum": ["local"] },
+        "maxCharsForCloud": { "type": "integer" },
+        "demonicIntensity": { "type": "string", "enum": ["low", "med", "high"] }
+      }
+    },
+    "led": {
+      "type": "object",
+      "properties": {
+        "idlePercent": { "type": "number" },
+        "listeningPercent": { "type": "number" },
+        "thinkingMinPercent": { "type": "number" },
+        "thinkingMaxPercent": { "type": "number" },
+        "talkingUseAudioRms": { "type": "boolean" }
+      }
+    }
+  },
+  "required": ["ipc", "stateTimeouts", "tts", "led"]
+}
