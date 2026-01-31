@@ -17,3 +17,15 @@ contracts, TTS routing, process supervision, and testing.
 ## Notes
 - The plan file is not modified during implementation.
 - Trello cards are captured in the plan doc; this repo focuses on the build spec.
+
+## IPC Data Flow
+
+```mermaid
+flowchart TD
+  STT[STT_Service] -->|POST /state| IPC[IPC_Bridge]
+  TTS[TTS_Router] <-->|GET /responses| IPC
+  OpenClaw[OpenClaw] -->|POST /responses| IPC
+  LED[LED_Service] -->|GET /logs| IPC
+  Orch[Orchestrator] -->|GET /logs| IPC
+  IPC -->|POST /events| Storage[Storage_Service]
+```
