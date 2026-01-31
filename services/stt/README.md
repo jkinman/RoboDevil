@@ -8,5 +8,5 @@ and forwards text to OpenClaw.
 - `tests/placeholder.test.js` ensures test harness coverage.
 
 ## Planned
-- IPC emission for state updates.
 - Whisper model integration and wake word support.
+ - Refine state payload details for IPC.
