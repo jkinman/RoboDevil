@@ -3,6 +3,8 @@ const { chooseProvider } = require("./router");
 const { fetchResponses } = require("./responsePoller");
 const { estimatePlaybackMs } = require("./playbackEstimator");
 const { startHealthPing } = require("../../common/healthPing");
+const { getProvider } = require("./providerFactory");
+const { playAudio } = require("./audioPlayer");
 
 const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
 const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
@@ -60,10 +62,28 @@ async function poll() {
   for (const response of responses) {
     const decision = handleResponse(response);
     process.stdout.write(JSON.stringify(decision) + "\n");
-    sendStateUpdate("talking");
-    setTimeout(() => {
-      sendStateUpdate("idle");
-    }, estimatePlaybackMs(response?.text || ""));
+    const primary = getProvider(decision.provider);
+    const fallback = getProvider("local");
+
+    try {
+      sendStateUpdate("talking");
+      const audioPath = await primary.synthesize({ text: response.text });
+      await playAudio(audioPath);
+    } catch (error) {
+      console.log("[tts-router] Primary failed", error.message);
+      if (fallback && primary !== fallback) {
+        try {
+          const audioPath = await fallback.synthesize({ text: response.text });
+          await playAudio(audioPath);
+        } catch (fallbackError) {
+          console.log("[tts-router] Fallback failed", fallbackError.message);
+        }
+      }
+    } finally {
+      setTimeout(() => {
+        sendStateUpdate("idle");
+      }, estimatePlaybackMs(response?.text || ""));
+    }
   }
 }
 

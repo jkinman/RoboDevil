@@ -4,6 +4,7 @@ const { chooseProvider } = require("../src/router");
 const { fetchResponses } = require("../src/responsePoller");
 const { estimatePlaybackMs } = require("../src/playbackEstimator");
 const http = require("http");
+const { createJwt } = require("../src/providers/inworld");
 
 test("routes to local when offline", () => {
   const result = chooseProvider({ networkOnline: false });
@@ -42,4 +43,13 @@ test("estimatePlaybackMs scales with text length", () => {
   const short = estimatePlaybackMs("hi");
   const long = estimatePlaybackMs("x".repeat(300));
   assert.ok(long > short);
+});
+
+test("createJwt returns three segments", () => {
+  const token = createJwt({
+    key: "key",
+    secret: "secret",
+    audience: "aud"
+  });
+  assert.equal(token.split(".").length, 3);
 });

@@ -8,6 +8,7 @@ Selects TTS provider (Inworld primary, local fallback), plays audio, and emits
 - Unit tests verify provider selection.
 - Polls IPC bridge `/responses` for OpenClaw output.
 - Emits `talking` then `idle` (estimated from text length).
+- Strategy/factory layer selects Inworld or Piper fallback.
 
 ## Planned
 - Audio playback + provider API integrations.
