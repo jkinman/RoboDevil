@@ -15,6 +15,7 @@ const storagePort = Number(process.env.STORAGE_HTTP_PORT || 17172);
 const stateHistory = [];
 const maxHistory = 200;
 const responseQueue = [];
+const healthMap = new Map();
 
 function recordState(entry) {
   stateHistory.push(entry);
@@ -70,11 +71,13 @@ function createHttpServer() {
       return sendJson(res, 401, { error: "unauthorized" });
     }
     if (req.method === "GET" && req.url === "/health") {
+      const services = Array.from(healthMap.values());
       return sendJson(res, 200, {
         name: "ipc-bridge",
         status: "ok",
         uptimeSec: Math.floor(process.uptime()),
-        lastHeartbeat: new Date().toISOString()
+        lastHeartbeat: new Date().toISOString(),
+        services
       });
     }
 
@@ -124,6 +127,25 @@ function createHttpServer() {
         const entry = { ...payload, receivedAt: new Date().toISOString() };
         recordState(entry);
         forwardToStorage(entry);
+        return sendJson(res, 200, { ok: true });
+      });
+    }
+
+    if (req.method === "POST" && req.url === "/health") {
+      return parseJsonBody(req, (error, payload) => {
+        if (error) {
+          return sendJson(res, 400, { error: "invalid json" });
+        }
+
+        if (!payload || typeof payload.name !== "string") {
+          return sendJson(res, 400, { error: "name is required" });
+        }
+
+        const entry = {
+          ...payload,
+          receivedAt: new Date().toISOString()
+        };
+        healthMap.set(payload.name, entry);
         return sendJson(res, 200, { ok: true });
       });
     }

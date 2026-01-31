@@ -65,3 +65,42 @@ test("responses endpoint accepts text", async () => {
 
   server.close();
 });
+
+test("health endpoint accepts service status", async () => {
+  const server = http.createServer((req, res) => {
+    if (req.method === "POST" && req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const port = server.address().port;
+
+  await new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        method: "POST",
+        host: "127.0.0.1",
+        port,
+        path: "/health",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      },
+      (res) => {
+        res.on("data", () => {});
+        res.on("end", () => resolve(res.statusCode));
+      }
+    );
+
+    req.on("error", reject);
+    req.write(JSON.stringify({ name: "test", status: "ok" }));
+    req.end();
+  });
+
+  server.close();
+});
