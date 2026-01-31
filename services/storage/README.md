@@ -8,6 +8,7 @@ state logs.
 - HTTP endpoints: `GET /health`, `GET /events`, `POST /events`.
 - Migrations in `migrations/` with `_migrations` tracking.
 - Unit tests cover health + event writes.
+- Migration draft includes conversations, messages, actions tables.
 
 ## Planned
 - IPC integration (optional). Local-only UNIX socket for internal services if we later want to avoid HTTP.
