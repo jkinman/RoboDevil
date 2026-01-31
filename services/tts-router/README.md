@@ -10,4 +10,4 @@ Selects TTS provider (Inworld primary, local fallback), plays audio, and emits
 
 ## Planned
 - Audio playback + provider API integrations.
-- Remove polling in favor of push-based updates if needed.
+- Keep polling until it becomes a real bottleneck; consider push-based updates later.
