@@ -16,8 +16,16 @@ function startService(servicePath) {
   const name = path.basename(servicePath);
   const child = spawn("node", ["src/index.js"], {
     cwd,
-    stdio: "inherit",
+    stdio: ["ignore", "pipe", "pipe"],
     env: process.env
+  });
+
+  child.stdout.on("data", (data) => {
+    process.stdout.write(`[${name}] ${data}`);
+  });
+
+  child.stderr.on("data", (data) => {
+    process.stderr.write(`[${name}] ${data}`);
   });
 
   child.on("exit", (code) => {
@@ -30,6 +38,11 @@ function startService(servicePath) {
 
 console.log("[dev] Starting local services...");
 services.forEach(startService);
+
+setInterval(() => {
+  const running = children.filter((child) => child.exitCode === null).length;
+  console.log(`[dev] status ${running}/${children.length} running`);
+}, 5000);
 
 function shutdown() {
   console.log("[dev] Shutting down services...");
