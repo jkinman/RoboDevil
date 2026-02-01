@@ -2,17 +2,7 @@ const http = require("http");
 const https = require("https");
 const { getConfig } = require("../../common/config");
 
-const config = getConfig();
-const gatewayHost = config.openclaw.gatewayHost;
-const gatewayPort = Number(config.openclaw.gatewayPort || 18789);
-const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN || null;
-const agentId = config.openclaw.agentId || "main";
-const sessionUser = config.openclaw.sessionUser || "";
-const sessionKey = process.env.OPENCLAW_SESSION_KEY || "";
-const endpoint = config.openclaw.httpEndpoint || "responses";
-const scheme = config.openclaw.gatewayScheme || "http";
-
-function buildRequestPayload(text) {
+function buildRequestPayload(text, endpoint, sessionUser) {
   const base = endpoint === "chat"
     ? { model: "openclaw", messages: [{ role: "user", content: text }] }
     : { model: "openclaw", input: text };
@@ -56,7 +46,16 @@ function extractText(payload) {
 }
 
 function sendToOpenClaw(text) {
-  const payload = buildRequestPayload(text);
+  const config = getConfig();
+  const gatewayHost = config.openclaw.gatewayHost;
+  const gatewayPort = Number(config.openclaw.gatewayPort || 18789);
+  const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN || null;
+  const agentId = config.openclaw.agentId || "main";
+  const sessionUser = config.openclaw.sessionUser || "";
+  const sessionKey = process.env.OPENCLAW_SESSION_KEY || "";
+  const endpoint = config.openclaw.httpEndpoint || "responses";
+  const scheme = config.openclaw.gatewayScheme || "http";
+  const payload = buildRequestPayload(text, endpoint, sessionUser);
   const data = JSON.stringify(payload);
   const client = scheme === "https" ? https : http;
   const path = endpoint === "chat" ? "/v1/chat/completions" : "/v1/responses";

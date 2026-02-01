@@ -3,7 +3,7 @@ const { buildStatePayload } = require("./ipcClient");
 const { startHealthPing } = require("../../common/healthPing");
 const { buildRecordCommand, recordAudio } = require("./recorder");
 const { buildWhisperCommand, transcribeAudio } = require("./transcriber");
-const { sendToOpenClaw } = require("./openclawClient");
+const { sendToLlm } = require("./llmClient");
 const { getConfig } = require("../../common/config");
 
 const config = getConfig();
@@ -15,6 +15,7 @@ const recordSeconds = Number(config.stt.recordSeconds || 5);
 const tempAudioPath = config.stt.audioPath || "./tmp/stt-input.wav";
 const whisperBin = config.stt.whisperBin || "whisper.cpp";
 const whisperModel = config.stt.whisperModel || "./models/ggml-tiny.en.bin";
+const llmProvider = config.llm.provider || "openclaw";
 const openclawAgentId = config.openclaw.agentId || "main";
 const wakePhraseRaw = config.stt.wakePhrase || "";
 const wakeCooldownMs = Number(config.stt.wakeCooldownMs || 3000);
@@ -142,7 +143,7 @@ function sendState(state, expiresAt) {
 function sendResponse(text) {
   const payload = {
     text,
-    source: "openclaw",
+    source: llmProvider,
     agentId: openclawAgentId
   };
   const data = JSON.stringify(payload);
@@ -236,7 +237,7 @@ async function loop() {
       }
       try {
         inFlight = true;
-        const response = await sendToOpenClaw(payloadText);
+                    const response = await sendToLlm(payloadText);
         if (suppressNextResponse) {
           suppressNextResponse = false;
         } else if (response?.text) {

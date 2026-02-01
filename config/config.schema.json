@@ -6,41 +6,96 @@
     "ipc": {
       "type": "object",
       "properties": {
-        "transport": { "type": "string", "enum": ["unix", "tcp", "dual"] },
-        "socketPath": { "type": "string" },
-        "host": { "type": "string" },
-        "port": { "type": "integer" },
-        "httpPort": { "type": "integer" }
+        "httpHost": { "type": "string" },
+        "httpPort": { "type": "integer" },
+        "socketPath": { "type": "string" }
       },
-      "required": ["transport"]
+      "required": ["httpHost", "httpPort", "socketPath"]
     },
-    "stateTimeouts": {
+    "health": {
       "type": "object",
       "properties": {
-        "listeningSec": { "type": "number" },
-        "thinkingSec": { "type": "number" },
-        "talkingBufferSec": { "type": "number" }
+        "pingIntervalSec": { "type": "number" }
+      }
+    },
+    "stt": {
+      "type": "object",
+      "properties": {
+        "recordSeconds": { "type": "number" },
+        "audioPath": { "type": "string" },
+        "whisperBin": { "type": "string" },
+        "whisperModel": { "type": "string" },
+        "recordCmd": { "type": "string" },
+        "wakePhrase": { "type": "string" },
+        "wakeCooldownMs": { "type": "number" },
+        "requireWake": { "type": "boolean" },
+        "interceptPhrases": { "type": "string" },
+        "interceptCooldownMs": { "type": "number" },
+        "interceptCommand": { "type": "string" }
+      }
+    },
+    "openclaw": {
+      "type": "object",
+      "properties": {
+        "gatewayHost": { "type": "string" },
+        "gatewayPort": { "type": "integer" },
+        "agentId": { "type": "string" },
+        "sessionUser": { "type": "string" },
+        "gatewayScheme": { "type": "string" },
+        "httpEndpoint": { "type": "string" }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string", "enum": ["openclaw", "xai"] },
+        "model": { "type": "string" },
+        "xai": {
+          "type": "object",
+          "properties": {
+            "baseUrl": { "type": "string" },
+            "endpoint": { "type": "string", "enum": ["responses", "chat"] }
+          }
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "httpHost": { "type": "string" },
+        "httpPort": { "type": "integer" },
+        "dbPath": { "type": "string" },
+        "retentionDays": { "type": "number" }
       }
     },
     "tts": {
       "type": "object",
       "properties": {
-        "primaryProvider": { "type": "string", "enum": ["inworld"] },
-        "fallbackProvider": { "type": "string", "enum": ["local"] },
-        "maxCharsForCloud": { "type": "integer" },
-        "demonicIntensity": { "type": "string", "enum": ["low", "med", "high"] }
-      }
-    },
-    "led": {
-      "type": "object",
-      "properties": {
-        "idlePercent": { "type": "number" },
-        "listeningPercent": { "type": "number" },
-        "thinkingMinPercent": { "type": "number" },
-        "thinkingMaxPercent": { "type": "number" },
-        "talkingUseAudioRms": { "type": "boolean" }
+        "stopWindowMs": { "type": "number" },
+        "playCmd": { "type": "string" },
+        "tempAudio": { "type": "string" },
+        "inworld": {
+          "type": "object",
+          "properties": {
+            "baseUrl": { "type": "string" },
+            "voiceId": { "type": "string" },
+            "modelId": { "type": "string" },
+            "workspaceId": { "type": "string" },
+            "audioEncoding": { "type": "string" },
+            "speakingRate": { "type": "number" },
+            "temperature": { "type": "number" }
+          }
+        },
+        "piper": {
+          "type": "object",
+          "properties": {
+            "bin": { "type": "string" },
+            "model": { "type": "string" },
+            "outputPath": { "type": "string" }
+          }
+        }
       }
     }
   },
-  "required": ["ipc", "stateTimeouts", "tts", "led"]
+  "required": ["ipc", "stt", "openclaw", "llm", "storage", "tts"]
 }

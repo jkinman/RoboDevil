@@ -31,6 +31,14 @@ const DEFAULT_CONFIG = {
     gatewayScheme: "http",
     httpEndpoint: "responses"
   },
+  llm: {
+    provider: "openclaw",
+    model: "grok-4",
+    xai: {
+      baseUrl: "https://api.x.ai",
+      endpoint: "responses"
+    }
+  },
   storage: {
     httpHost: "127.0.0.1",
     httpPort: 17172,
@@ -118,6 +126,11 @@ function applyEnvOverrides(config) {
   if (env.OPENCLAW_GATEWAY_SCHEME) config.openclaw.gatewayScheme = env.OPENCLAW_GATEWAY_SCHEME;
   if (env.OPENCLAW_HTTP_ENDPOINT) config.openclaw.httpEndpoint = env.OPENCLAW_HTTP_ENDPOINT;
 
+  if (env.LLM_PROVIDER) config.llm.provider = env.LLM_PROVIDER;
+  if (env.LLM_MODEL) config.llm.model = env.LLM_MODEL;
+  if (env.XAI_BASE_URL) config.llm.xai.baseUrl = env.XAI_BASE_URL;
+  if (env.XAI_ENDPOINT) config.llm.xai.endpoint = env.XAI_ENDPOINT;
+
   if (env.STORAGE_HTTP_HOST) config.storage.httpHost = env.STORAGE_HTTP_HOST;
   if (env.STORAGE_HTTP_PORT) config.storage.httpPort = Number(env.STORAGE_HTTP_PORT);
   if (env.STORAGE_DB_PATH) config.storage.dbPath = env.STORAGE_DB_PATH;
@@ -181,4 +194,8 @@ function loadConfig() {
   return cachedConfig;
 }
 
-module.exports = { getConfig: loadConfig };
+function resetConfig() {
+  cachedConfig = null;
+}
+
+module.exports = { getConfig: loadConfig, resetConfig };

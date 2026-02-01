@@ -10,7 +10,7 @@
   "stt": {
     "recordSeconds": 5,
     "audioPath": "./tmp/stt-input.wav",
-    "whisperBin": "whisper.cpp",
+    "whisperBin": "whisper-cpp",
     "whisperModel": "./models/ggml-tiny.en.bin",
     "recordCmd": "",
     "wakePhrase": "",
@@ -28,6 +28,14 @@
     "gatewayScheme": "http",
     "httpEndpoint": "responses"
   },
+  "llm": {
+    "provider": "openclaw",
+    "model": "grok-4",
+    "xai": {
+      "baseUrl": "https://api.x.ai",
+      "endpoint": "responses"
+    }
+  },
   "storage": {
     "httpHost": "127.0.0.1",
     "httpPort": 17172,
@@ -36,12 +44,12 @@
   },
   "tts": {
     "stopWindowMs": 3000,
-    "playCmd": "",
+    "playCmd": "afplay {file}",
     "tempAudio": "./tmp/tts-output.wav",
     "inworld": {
-      "baseUrl": "",
-      "voiceId": "",
-      "modelId": "",
+      "baseUrl": "https://api.inworld.ai/tts/v1/voice",
+      "voiceId": "Hades",
+      "modelId": "inworld-tts-1.5-max",
       "workspaceId": "",
       "audioEncoding": "MP3",
       "speakingRate": 1,
@@ -49,7 +57,7 @@
     },
     "piper": {
       "bin": "piper",
-      "model": "",
+      "model": "tts_models/multilingual/multi-dataset/xtts_v2",
       "outputPath": "./tmp/tts-output.wav"
     }
   }
