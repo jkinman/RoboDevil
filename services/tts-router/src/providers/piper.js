@@ -1,6 +1,7 @@
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { getConfig } = require("../../../common/config");
 
 function ensureDir(filePath) {
   const dir = path.dirname(filePath);
@@ -10,9 +11,10 @@ function ensureDir(filePath) {
 }
 
 function synthesize({ text }) {
-  const bin = process.env.PIPER_BIN || "piper";
-  const model = process.env.PIPER_MODEL;
-  const outputPath = process.env.PIPER_OUTPUT_PATH || "./tmp/tts-output.wav";
+  const config = getConfig();
+  const bin = config.tts.piper.bin || "piper";
+  const model = config.tts.piper.model;
+  const outputPath = config.tts.piper.outputPath || "./tmp/tts-output.wav";
   if (!model) {
     throw new Error("missing PIPER_MODEL");
   }

@@ -4,11 +4,17 @@ const { fetchResponses } = require("./responsePoller");
 const { estimatePlaybackMs } = require("./playbackEstimator");
 const { startHealthPing } = require("../../common/healthPing");
 const { getProvider } = require("./providerFactory");
-const { playAudio } = require("./audioPlayer");
+const { playAudio, stopPlayback } = require("./audioPlayer");
+const { fetchCommands } = require("./commandPoller");
+const { getConfig } = require("../../common/config");
 
-const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
-const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
+const config = getConfig();
+const ipcHost = config.ipc.httpHost;
+const ipcPort = config.ipc.httpPort;
 const ipcToken = process.env.IPC_AUTH_TOKEN || null;
+const stopWindowMs = Number(config.tts.stopWindowMs || 3000);
+
+let stopUntil = 0;
 
 function handleResponse(response) {
   const decision = chooseProvider({
@@ -53,6 +59,21 @@ function sendStateUpdate(state) {
 }
 
 async function poll() {
+  const commands = await fetchCommands({
+    host: ipcHost,
+    port: ipcPort,
+    token: ipcToken
+  });
+  if (commands.length) {
+    const now = Date.now();
+    const hasStop = commands.some((cmd) => cmd?.type === "stop_tts");
+    if (hasStop) {
+      stopPlayback();
+      stopUntil = Math.max(stopUntil, now + stopWindowMs);
+      return;
+    }
+  }
+
   const responses = await fetchResponses({
     host: ipcHost,
     port: ipcPort,
@@ -60,6 +81,9 @@ async function poll() {
   });
 
   for (const response of responses) {
+    if (Date.now() < stopUntil) {
+      continue;
+    }
     const decision = handleResponse(response);
     process.stdout.write(JSON.stringify(decision) + "\n");
     const primary = getProvider(decision.provider);

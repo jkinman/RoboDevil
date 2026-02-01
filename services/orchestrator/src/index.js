@@ -1,9 +1,11 @@
 const http = require("http");
+const { getConfig } = require("../../common/config");
 const { shouldResetState, resetToIdle } = require("./watchdog");
 const { startHealthPing } = require("../../common/healthPing");
 
-const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
-const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
+const config = getConfig();
+const ipcHost = config.ipc.httpHost;
+const ipcPort = config.ipc.httpPort;
 const ipcToken = process.env.IPC_AUTH_TOKEN || null;
 
 const state = {

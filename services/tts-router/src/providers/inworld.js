@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { getConfig } = require("../../../common/config");
 
 function base64Url(input) {
   return Buffer.from(input)
@@ -44,7 +45,8 @@ function ensureDir(filePath) {
 }
 
 async function synthesize({ text }) {
-  const baseUrl = process.env.INWORLD_BASE_URL;
+  const config = getConfig();
+  const baseUrl = config.tts.inworld.baseUrl;
   const basicToken = process.env.INWORLD_BASIC;
   const key = process.env.INWORLD_JWT_KEY;
   const secret = process.env.INWORLD_SECRET;
@@ -58,13 +60,13 @@ async function synthesize({ text }) {
   const jwt = basicToken
     ? null
     : createJwt({ key, secret, audience: process.env.INWORLD_JWT_AUD });
-  const voiceId = process.env.INWORLD_VOICE_ID;
-  const modelId = process.env.INWORLD_MODEL;
-  const workspaceId = process.env.INWORLD_WORKSPACE_ID;
+  const voiceId = config.tts.inworld.voiceId;
+  const modelId = config.tts.inworld.modelId;
+  const workspaceId = config.tts.inworld.workspaceId;
 
-  const audioEncoding = process.env.INWORLD_AUDIO_ENCODING || "MP3";
-  const speakingRate = Number(process.env.INWORLD_SPEAKING_RATE || 1);
-  const temperature = Number(process.env.INWORLD_TEMPERATURE || 1);
+  const audioEncoding = config.tts.inworld.audioEncoding || "MP3";
+  const speakingRate = Number(config.tts.inworld.speakingRate || 1);
+  const temperature = Number(config.tts.inworld.temperature || 1);
 
   const body = {
     text,
@@ -110,7 +112,7 @@ async function synthesize({ text }) {
     audioBuffer = Buffer.from(audio, "base64");
   }
 
-  const outPath = process.env.TTS_TEMP_AUDIO || "./tmp/tts-output.wav";
+  const outPath = config.tts.tempAudio || "./tmp/tts-output.wav";
   ensureDir(outPath);
   fs.writeFileSync(outPath, audioBuffer);
   return outPath;

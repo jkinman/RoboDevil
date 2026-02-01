@@ -1,4 +1,5 @@
 const http = require("http");
+const { getConfig } = require("../../common/config");
 const {
   DEFAULT_STATE,
   shouldExpire,
@@ -7,8 +8,9 @@ const {
 const { startHealthPing } = require("../../common/healthPing");
 
 let currentState = { ...DEFAULT_STATE };
-const ipcHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
-const ipcPort = Number(process.env.IPC_HTTP_PORT || 17171);
+const config = getConfig();
+const ipcHost = config.ipc.httpHost;
+const ipcPort = config.ipc.httpPort;
 const ipcToken = process.env.IPC_AUTH_TOKEN || null;
 
 function updateState(update) {

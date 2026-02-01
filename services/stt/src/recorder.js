@@ -1,9 +1,10 @@
 const { spawn } = require("child_process");
 
-function buildRecordCommand({ seconds, outputPath }) {
-  const cmd = process.env.STT_RECORD_CMD;
-  if (cmd) {
-    return cmd.replace("{out}", outputPath).replace("{sec}", String(seconds));
+function buildRecordCommand({ seconds, outputPath, recordCmd }) {
+  if (recordCmd) {
+    return recordCmd
+      .replace("{out}", outputPath)
+      .replace("{sec}", String(seconds));
   }
 
   return `sox -d -r 16000 -c 1 -b 16 -e signed-integer "${outputPath}" trim 0 ${seconds}`;

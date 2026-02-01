@@ -2,16 +2,18 @@ const path = require("path");
 const { createDatabase, runMigrations, cleanupEvents } = require("./db");
 const { createServer } = require("./server");
 const { startHealthPing } = require("../../common/healthPing");
+const { getConfig } = require("../../common/config");
 
+const config = getConfig();
 const defaultDbPath = path.resolve(__dirname, "../../../data/robodevil.db");
-const dbPath = process.env.STORAGE_DB_PATH || defaultDbPath;
+const dbPath = config.storage.dbPath || defaultDbPath;
 const db = createDatabase(dbPath);
 const migrationsDir = path.resolve(__dirname, "../migrations");
 runMigrations(db, migrationsDir);
 
-const httpHost = process.env.STORAGE_HTTP_HOST || "127.0.0.1";
-const httpPort = Number(process.env.STORAGE_HTTP_PORT || 17172);
-const retentionDays = Number(process.env.STORAGE_RETENTION_DAYS || 30);
+const httpHost = config.storage.httpHost;
+const httpPort = Number(config.storage.httpPort || 17172);
+const retentionDays = Number(config.storage.retentionDays || 30);
 
 const server = createServer({ db });
 server.listen(httpPort, httpHost, () => {

@@ -6,17 +6,20 @@ const { validateMessage } = require("./validateMessage");
 const { buildLogPage } = require("./logQuery");
 const { sendEvent } = require("./storageClient");
 const { startHealthPing } = require("../../common/healthPing");
+const { getConfig } = require("../../common/config");
 
-const unixSocketPath = process.env.IPC_SOCKET_PATH || "/tmp/robodevil_state.sock";
-const httpHost = process.env.IPC_HTTP_HOST || "127.0.0.1";
-const httpPort = Number(process.env.IPC_HTTP_PORT || 17171);
+const config = getConfig();
+const unixSocketPath = config.ipc.socketPath;
+const httpHost = config.ipc.httpHost;
+const httpPort = config.ipc.httpPort;
 const authToken = process.env.IPC_AUTH_TOKEN || null;
-const storageHost = process.env.STORAGE_HTTP_HOST || "127.0.0.1";
-const storagePort = Number(process.env.STORAGE_HTTP_PORT || 17172);
+const storageHost = config.storage.httpHost;
+const storagePort = config.storage.httpPort;
 
 const stateHistory = [];
 const maxHistory = 200;
 const responseQueue = [];
+const commandQueue = [];
 const healthMap = new Map();
 
 startHealthPing({ name: "ipc-bridge" });
@@ -125,9 +128,29 @@ function createHttpServer() {
       });
     }
 
+    if (req.method === "POST" && req.url === "/commands") {
+      return parseJsonBody(req, (error, payload) => {
+        if (error) {
+          return sendJson(res, 400, { error: "invalid json" });
+        }
+
+        if (!payload || typeof payload.type !== "string") {
+          return sendJson(res, 400, { error: "type is required" });
+        }
+
+        commandQueue.push({ ...payload, receivedAt: new Date().toISOString() });
+        return sendJson(res, 200, { ok: true });
+      });
+    }
+
     if (req.method === "GET" && req.url === "/responses") {
       const responses = responseQueue.splice(0, responseQueue.length);
       return sendJson(res, 200, { responses });
+    }
+
+    if (req.method === "GET" && req.url === "/commands") {
+      const commands = commandQueue.splice(0, commandQueue.length);
+      return sendJson(res, 200, { commands });
     }
 
     if (req.method === "POST" && req.url === "/state") {

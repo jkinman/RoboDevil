@@ -7,6 +7,7 @@ and forwards text to OpenClaw.
 - Placeholder implementation only.
 - `tests/placeholder.test.js` ensures test harness coverage.
 - Basic mic capture + whisper.cpp CLI integration added (requires local tools).
+- OpenClaw Gateway HTTP endpoint must be enabled (`responses` or `chat`).
 
 ## Planned
 - Whisper model integration and wake word support.

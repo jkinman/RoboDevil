@@ -38,6 +38,7 @@ Then complete the interactive steps in your terminal:
 
 ```bash
 openclaw setup
+openclaw onboard --install-daemon
 openclaw gateway --port 18789
 ```
 

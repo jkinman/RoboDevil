@@ -1,10 +1,12 @@
 const http = require("http");
+const { getConfig } = require("./config");
 
 function startHealthPing({ name, status = "ok" }) {
-  const host = process.env.IPC_HTTP_HOST || "127.0.0.1";
-  const port = Number(process.env.IPC_HTTP_PORT || 17171);
+  const config = getConfig();
+  const host = config.ipc.httpHost;
+  const port = config.ipc.httpPort;
   const token = process.env.IPC_AUTH_TOKEN || null;
-  const intervalSec = Number(process.env.HEALTH_PING_INTERVAL_SEC || 30);
+  const intervalSec = Number(config.health.pingIntervalSec || 30);
 
   const send = () => {
     const payload = JSON.stringify({

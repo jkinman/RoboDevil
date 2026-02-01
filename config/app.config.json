@@ -1,0 +1,56 @@
+{
+  "ipc": {
+    "httpHost": "127.0.0.1",
+    "httpPort": 17171,
+    "socketPath": "/tmp/robodevil_state.sock"
+  },
+  "health": {
+    "pingIntervalSec": 30
+  },
+  "stt": {
+    "recordSeconds": 5,
+    "audioPath": "./tmp/stt-input.wav",
+    "whisperBin": "whisper.cpp",
+    "whisperModel": "./models/ggml-tiny.en.bin",
+    "recordCmd": "",
+    "wakePhrase": "",
+    "wakeCooldownMs": 3000,
+    "requireWake": true,
+    "interceptPhrases": "stop,shutup,no",
+    "interceptCooldownMs": 2000,
+    "interceptCommand": "stop_tts"
+  },
+  "openclaw": {
+    "gatewayHost": "127.0.0.1",
+    "gatewayPort": 18789,
+    "agentId": "main",
+    "sessionUser": "",
+    "gatewayScheme": "http",
+    "httpEndpoint": "responses"
+  },
+  "storage": {
+    "httpHost": "127.0.0.1",
+    "httpPort": 17172,
+    "dbPath": "./data/robodevil.db",
+    "retentionDays": 30
+  },
+  "tts": {
+    "stopWindowMs": 3000,
+    "playCmd": "",
+    "tempAudio": "./tmp/tts-output.wav",
+    "inworld": {
+      "baseUrl": "",
+      "voiceId": "",
+      "modelId": "",
+      "workspaceId": "",
+      "audioEncoding": "MP3",
+      "speakingRate": 1,
+      "temperature": 1
+    },
+    "piper": {
+      "bin": "piper",
+      "model": "",
+      "outputPath": "./tmp/tts-output.wav"
+    }
+  }
+}
