@@ -1,7 +1,9 @@
 node_modules/
 data/
 tmp/
+models/*
 .env
 .env.*
 !.env.example
 config/app.config.local.json
+!models/.gitkeep
