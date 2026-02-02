@@ -1,6 +1,16 @@
 const { spawn } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
+function ensureDir(filePath) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
 
 function buildRecordCommand({ seconds, outputPath, recordCmd }) {
+  ensureDir(outputPath);
   if (recordCmd) {
     return recordCmd
       .replace("{out}", outputPath)

@@ -9,6 +9,6 @@
     "test": "node --test"
   },
   "dependencies": {
-    "better-sqlite3": "^9.6.0"
+    "better-sqlite3": "^12.6.2"
   }
 }

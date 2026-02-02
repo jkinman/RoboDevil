@@ -10,10 +10,10 @@
   "stt": {
     "recordSeconds": 5,
     "audioPath": "./tmp/stt-input.wav",
-    "whisperBin": "whisper-cpp",
+    "whisperBin": "/opt/homebrew/bin/whisper-cli",
     "whisperModel": "./models/ggml-tiny.en.bin",
     "recordCmd": "",
-    "wakePhrase": "",
+    "wakePhrase": "Robot Devil",
     "wakeCooldownMs": 3000,
     "requireWake": true,
     "interceptPhrases": "stop,shutup,no",

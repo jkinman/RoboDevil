@@ -4,6 +4,7 @@ const path = require("path");
 const services = [
   "services/ipc-bridge",
   "services/storage",
+  "services/stt",
   "services/tts-router",
   "services/led",
   "services/orchestrator"

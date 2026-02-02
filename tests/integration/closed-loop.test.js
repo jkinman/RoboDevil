@@ -205,6 +205,7 @@ test("closed loop: STT -> OpenClaw -> IPC -> TTS", async () => {
     OPENCLAW_GATEWAY_TOKEN: "",
     OPENCLAW_SESSION_KEY: "",
     INWORLD_BASIC: "test",
+    NODE_OPTIONS: "",
     IPC_HTTP_HOST: "",
     IPC_HTTP_PORT: "",
     IPC_SOCKET_PATH: "",

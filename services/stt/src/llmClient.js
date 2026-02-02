@@ -34,9 +34,9 @@ function extractText(payload) {
 
 async function sendToXai(text) {
   const config = getConfig();
-  const apiKey = process.env.XAI_API_KEY;
+  const apiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
   if (!apiKey) {
-    throw new Error("missing XAI_API_KEY");
+    throw new Error("missing XAI_API_KEY (or GROK_API_KEY)");
   }
 
   const baseUrl = config.llm.xai.baseUrl || "https://api.x.ai";

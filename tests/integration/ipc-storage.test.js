@@ -90,6 +90,7 @@ test("IPC forwards state updates to storage events", async () => {
     IPC_HTTP_PORT: String(ipcPort),
     IPC_HTTP_HOST: "127.0.0.1",
     IPC_AUTH_TOKEN: "",
+    NODE_OPTIONS: "",
     STORAGE_HTTP_PORT: String(storagePort),
     STORAGE_HTTP_HOST: "127.0.0.1",
     STORAGE_DB_PATH: dbPath

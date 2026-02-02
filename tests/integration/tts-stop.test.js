@@ -166,6 +166,7 @@ test("stop command interrupts playback and suppresses queue", async () => {
     IPC_AUTH_TOKEN: "",
     INWORLD_BASIC: "test",
     PLAY_LOG_PATH: logPath,
+    NODE_OPTIONS: "",
     IPC_HTTP_HOST: "",
     IPC_HTTP_PORT: "",
     IPC_SOCKET_PATH: "",
