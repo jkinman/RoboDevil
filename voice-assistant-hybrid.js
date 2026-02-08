@@ -154,8 +154,12 @@ async function main() {
       
       console.log(`  💬 Routing: '${message}'`);
       
-      // Execute skill
-      const result = await skillLoader.execute(message, {});
+      // Execute skill with context including speak function
+      const result = await skillLoader.execute(message, {
+        speak: async (text) => {
+          await speak(text);
+        }
+      });
       
       if (result) {
         await speak(result);
