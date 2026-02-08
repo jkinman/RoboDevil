@@ -35,14 +35,23 @@ async function speak(text) {
         headers: {
           'Authorization': `Basic ${process.env.INWORLD_BASIC}`,
           'Content-Type': 'application/json'
-        },
-        responseType: 'arraybuffer'
+        }
       }
     );
     
+    // The API returns JSON with base64-encoded audio
+    const audioContent = response.data.audioContent;
+    if (!audioContent) {
+      console.error('TTS error: No audio content in response');
+      return;
+    }
+    
+    // Decode base64 to binary
+    const audioBuffer = Buffer.from(audioContent, 'base64');
+    
     // Save and play audio
     const ttsFile = '/tmp/tts-response.mp3';
-    fs.writeFileSync(ttsFile, response.data);
+    fs.writeFileSync(ttsFile, audioBuffer);
     
     await new Promise((resolve) => {
       const play = spawn('pw-play', [ttsFile], { stdio: 'ignore' });
@@ -153,9 +162,12 @@ async function main() {
     console.log(`  ✅ Heard: '${text}'`);
     const textLower = text.toLowerCase();
     
-    // Check for wake word
-    if (textLower.includes('squidworth') || textLower.includes('squidward')) {
-      const message = text.replace(/.*squid(worth|ward)/i, '').trim();
+    // Check for wake word (various ways Whisper might transcribe "Squidworth")
+    const wakeWords = ['squidworth', 'squidward', 'this is a great word', 'squid worth', 'squid ward'];
+    const detectedWakeWord = wakeWords.find(w => textLower.includes(w));
+    
+    if (detectedWakeWord) {
+      const message = text.replace(new RegExp('.*' + detectedWakeWord, 'i'), '').trim();
       
       if (!message) {
         await speak("Yes? How can I help?");
@@ -178,7 +190,7 @@ async function main() {
         await sendToOpenClaw(message);
       }
     } else {
-      console.log('  (no wake word)');
+      console.log(`  (no wake word - heard: '${text.substring(0, 30)}...')`);
     }
   }
 }

@@ -14,6 +14,11 @@ start() {
         set -a
         source "$ROBODEVIL_DIR/.env"
         set +a
+        
+        # Explicitly export critical tokens (preserve base64 padding)
+        export INWORLD_BASIC=$(grep "^INWORLD_BASIC=" "$ROBODEVIL_DIR/.env" | sed 's/^[^=]*=//')
+        export HOME_ASSISTANT_TOKEN=$(grep "^HOME_ASSISTANT_TOKEN=" "$ROBODEVIL_DIR/.env" | sed 's/^[^=]*=//' 2>/dev/null || true)
+        export MATON_API_KEY=$(grep "^MATON_API_KEY=" "$ROBODEVIL_DIR/.env" | sed 's/^[^=]*=//' 2>/dev/null || true)
     fi
     
     # Check if npm packages are installed
