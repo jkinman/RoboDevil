@@ -11,13 +11,8 @@ function ensureDir(filePath) {
 
 function buildRecordCommand({ seconds, outputPath, recordCmd }) {
   ensureDir(outputPath);
-  if (recordCmd) {
-    return recordCmd
-      .replace("{out}", outputPath)
-      .replace("{sec}", String(seconds));
-  }
-
-  return `sox -d -r 16000 -c 1 -b 16 -e signed-integer "${outputPath}" trim 0 ${seconds}`;
+  // Use pw-record now that audio is working post-reboot
+  return `timeout ${seconds} pw-record --rate 16000 --channels 1 --format s16 "${outputPath}"`;
 }
 
 function recordAudio(command) {
@@ -25,7 +20,8 @@ function recordAudio(command) {
     const proc = spawn(command, { shell: true, stdio: "inherit" });
     proc.on("error", reject);
     proc.on("exit", (code) => {
-      if (code === 0) {
+      // 0 = success, 124 = timeout (expected)
+      if (code === 0 || code === 124) {
         resolve();
       } else {
         reject(new Error(`record failed: ${code}`));

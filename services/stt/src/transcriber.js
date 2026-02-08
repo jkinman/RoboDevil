@@ -1,7 +1,8 @@
 const { spawn } = require("child_process");
 
 function buildWhisperCommand({ bin, model, input }) {
-  return `"${bin}" -m "${model}" -f "${input}" -nt -np`;
+  // Use -t 2 to limit threads and reduce memory usage on Pi
+  return `"${bin}" -m "${model}" -f "${input}" -nt -np -t 2`;
 }
 
 function transcribeAudio(command) {
@@ -15,6 +16,9 @@ function transcribeAudio(command) {
     proc.on("exit", (code) => {
       if (code === 0) {
         resolve(output.trim());
+      } else if (code === 3) {
+        // Exit code 3 = no speech detected, not an error
+        resolve("");
       } else {
         reject(new Error(`whisper failed: ${code}`));
       }

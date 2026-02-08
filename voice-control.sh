@@ -35,7 +35,7 @@ start() {
     # Start Voice Assistant
     echo "  🎤 Starting Voice Assistant..."
     cd ~/RoboDevil
-    nohup ./voice-assistant-fast.sh > "$VOICE_LOG" 2>&1 &
+    nohup ./voice-assistant-ultra.sh > "$VOICE_LOG" 2>&1 &
     voice_pid=$!
     echo $voice_pid > "$VOICE_PID_FILE"
     
@@ -81,7 +81,7 @@ stop() {
     fi
     
     # Clean up any remaining processes
-    pkill -f "voice-assistant-fast.sh" 2>/dev/null
+    pkill -f "voice-assistant-ultra.sh" 2>/dev/null
     
     echo "  🦑 Squidworth is sleeping"
 }
