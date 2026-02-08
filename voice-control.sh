@@ -8,6 +8,14 @@ IPC_PID_FILE="/tmp/ipc-bridge.pid"
 start() {
     echo "🦑 Starting Squidworth Voice Assistant (Hybrid)..."
     
+    # Source environment variables
+    if [ -f "$ROBODEVIL_DIR/.env" ]; then
+        echo "  🔐 Loading environment variables..."
+        set -a
+        source "$ROBODEVIL_DIR/.env"
+        set +a
+    fi
+    
     # Check if npm packages are installed
     if [ ! -d "$ROBODEVIL_DIR/node_modules" ]; then
         echo "  📦 Installing dependencies..."
