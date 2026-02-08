@@ -179,55 +179,80 @@ async function runLevel3Diagnostic() {
   results.push('');
   results.push('--- Hardware Diagnostics ---');
   
-  // CPU Info
+  // CPU Info - Raspberry Pi specific
   try {
-    const cpuModel = execSync("cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d: -f2 | xargs || echo 'Unknown'", { encoding: 'utf8' }).trim();
+    // Try Raspberry Pi model first
+    let cpuModel = 'Unknown';
+    try {
+      cpuModel = execSync("cat /proc/device-tree/model 2>/dev/null | tr -d '\\0' || echo 'Unknown'", { encoding: 'utf8' }).trim();
+    } catch (e) {
+      // Fallback to cpuinfo
+      cpuModel = execSync("cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d: -f2 | xargs || echo 'Unknown'", { encoding: 'utf8' }).trim();
+    }
     const cpuCores = os.cpus().length;
+    const cpuSpeed = os.cpus()[0]?.speed || 'unknown';
     results.push(`CPU: ${cpuModel}`);
-    results.push(`CPU Cores: ${cpuCores}`);
+    results.push(`CPU Cores: ${cpuCores} at ${cpuSpeed} MHz`);
   } catch (e) {
     results.push('CPU: Information unavailable');
   }
   
-  // Temperature (if available on Pi)
+  // Temperature (Raspberry Pi specific)
   try {
     const temp = execSync("vcgencmd measure_temp 2>/dev/null | cut -d= -f2 | cut -d' -f1 || echo 'N/A'", { encoding: 'utf8' }).trim();
     if (temp !== 'N/A') {
       const tempNum = parseFloat(temp);
-      results.push(`CPU Temperature: ${temp}°C ${tempNum > 80 ? 'WARNING' : ''}`);
+      results.push(`CPU Temperature: ${temp}°C ${tempNum > 80 ? 'WARNING - Overheating' : tempNum > 70 ? 'CAUTION - Warm' : 'Normal'}`);
+    } else {
+      results.push('CPU Temperature: Sensor not available');
     }
   } catch (e) {
-    results.push('Temperature sensor: Unavailable');
+    results.push('Temperature: Unavailable');
+  }
+  
+  // Memory Details
+  try {
+    const totalMem = Math.round(os.totalmem() / 1024 / 1024);
+    const freeMem = Math.round(os.freemem() / 1024 / 1024);
+    const usedMem = totalMem - freeMem;
+    const usedPercent = Math.round((usedMem / totalMem) * 100);
+    results.push(`Memory: ${usedMem}MB used / ${totalMem}MB total (${usedPercent}%)`);
+  } catch (e) {
+    results.push('Memory: Unavailable');
   }
   
   // Disk details
   try {
-    const diskInfo = execSync("df -h / | tail -1 | awk '{print $2, $3, $4}'", { encoding: 'utf8' }).trim();
+    const diskInfo = execSync("df -h / | tail -1 | awk '{print \"Total:\", \\$2, \" Used:\", \\$3, \" Free:\", \\$4, \" Usage:\", \\$5}'", { encoding: 'utf8' }).trim();
     results.push(`Storage: ${diskInfo}`);
     
-    // Check for large files
+    // Check for large temp files
     const largeFiles = execSync("find /tmp -type f -size +10M 2>/dev/null | wc -l || echo '0'", { encoding: 'utf8' }).trim();
     if (parseInt(largeFiles) > 0) {
       results.push(`Large temp files: ${largeFiles}`);
     }
   } catch (e) {
-    results.push('Storage details: Unavailable');
+    results.push('Storage: Unavailable');
   }
   
   // Network
   try {
     const hostname = os.hostname();
     const networkInterfaces = os.networkInterfaces();
-    const eth0 = networkInterfaces['eth0'] || networkInterfaces['wlan0'];
+    const eth0 = networkInterfaces['eth0'];
+    const wlan0 = networkInterfaces['wlan0'];
+    
     if (eth0) {
       const ip = eth0.find(i => i.family === 'IPv4');
-      if (ip) {
-        results.push(`Network: ${ip.address}`);
-      }
+      if (ip) results.push(`Ethernet: ${ip.address}`);
+    }
+    if (wlan0) {
+      const ip = wlan0.find(i => i.family === 'IPv4');
+      if (ip) results.push(`WiFi: ${ip.address}`);
     }
     results.push(`Hostname: ${hostname}`);
   } catch (e) {
-    results.push('Network: Information unavailable');
+    results.push('Network: Unavailable');
   }
   
   // Uptime
@@ -236,6 +261,24 @@ async function runLevel3Diagnostic() {
     results.push(`Uptime: ${uptime}`);
   } catch (e) {
     results.push('Uptime: Unavailable');
+  }
+  
+  // Raspberry Pi specific: Throttling status
+  try {
+    const throttled = execSync("vcgencmd get_throttled 2>/dev/null | cut -d= -f2 || echo 'unknown'", { encoding: 'utf8' }).trim();
+    if (throttled !== '0x0' && throttled !== 'unknown') {
+      results.push(`WARNING: CPU throttling detected: ${throttled}`);
+    }
+  } catch (e) {
+    // Ignore - not critical
+  }
+  
+  // Swap info
+  try {
+    const swapInfo = execSync("free -m | grep Swap | awk '{print \"Total:\", \\$2, \" Used:\", \\$3}'", { encoding: 'utf8' }).trim();
+    results.push(`Swap: ${swapInfo}`);
+  } catch (e) {
+    // Ignore
   }
   
   return {
