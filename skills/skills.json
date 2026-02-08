@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "skillsDir": "./skills",
+  
+  "simpleSkills": {
+    "time": {
+      "patterns": ["time", "clock", "what time"],
+      "response": "It's {time:%I:%M %p}.",
+      "description": "Tell the current time"
+    },
+    
+    "help": {
+      "patterns": ["help", "what can you do", "commands"],
+      "response": "I can control your home lights and help with other tasks. Just ask!",
+      "description": "List available commands"
+    },
+    
+    "greeting": {
+      "patterns": ["hello", "hi", "hey"],
+      "response": "Hello! How can I help you today?",
+      "description": "Greeting"
+    }
+  },
+  
+  "nodeSkills": {
+    "lights": {
+      "patterns": ["light", "lights", "turn on", "turn off", "brightness", "dim", "color"],
+      "file": "lights.js",
+      "description": "Control home lights via Home Assistant"
+    },
+    
+    "presence": {
+      "patterns": ["who is home", "who is here", "anyone home"],
+      "file": "presence.js",
+      "description": "Detect who is home"
+    },
+    
+    "trip": {
+      "patterns": ["trip", "vacation", "travel"],
+      "file": "trip.js",
+      "description": "Current trip information"
+    },
+    
+    "weather": {
+      "patterns": ["weather", "forecast", "temperature"],
+      "file": "weather.js",
+      "description": "Weather information"
+    }
+  }
+}

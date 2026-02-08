@@ -8,12 +8,12 @@
     "pingIntervalSec": 30
   },
   "stt": {
-    "recordSeconds": 5,
+    "recordSeconds": 3,
     "audioPath": "./tmp/stt-input.wav",
-    "whisperBin": "/opt/homebrew/bin/whisper-cli",
+    "whisperBin": "/home/linuxbrew/.linuxbrew/bin/whisper-cli",
     "whisperModel": "./models/ggml-tiny.en.bin",
     "recordCmd": "",
-    "wakePhrase": "Robot Devil",
+    "wakePhrase": "Squidworth",
     "wakeCooldownMs": 3000,
     "requireWake": true,
     "interceptPhrases": "stop,shutup,no",
@@ -44,7 +44,7 @@
   },
   "tts": {
     "stopWindowMs": 3000,
-    "playCmd": "afplay {file}",
+    "playCmd": "aplay {file}",
     "tempAudio": "./tmp/tts-output.wav",
     "inworld": {
       "baseUrl": "https://api.inworld.ai/tts/v1/voice",

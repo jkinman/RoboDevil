@@ -3,7 +3,7 @@
 # Control lights via Home Assistant API
 
 skill_name="lights"
-skill_patterns=("light" "lights" "lamp" "turn on" "turn off" "dim" "bright" "dark")
+skill_patterns=("light" "lights" "lamp" "turn on" "turn off" "dim" "bright" "dark" "brightness" "color" "set" "percent" "%")
 skill_description="Control home lights via Home Assistant"
 
 # Home Assistant config
@@ -41,10 +41,41 @@ control_light() {
     [ -n "$result" ]
 }
 
-# Helper: Set brightness
-set_brightness() {
+# Helper: Set color
+set_color() {
     local entity_id="$1"
-    local brightness="$2"  # 0-255
+    local color_name="$2"
+    
+    # Convert color name to RGB
+    local rgb=""
+    case "$color_name" in
+        red) rgb="[255, 0, 0]" ;;
+        green) rgb="[0, 255, 0]" ;;
+        blue) rgb="[0, 0, 255]" ;;
+        yellow) rgb="[255, 255, 0]" ;;
+        orange) rgb="[255, 165, 0]" ;;
+        purple) rgb="[128, 0, 128]" ;;
+        pink) rgb="[255, 192, 203]" ;;
+        white) rgb="[255, 255, 255]" ;;
+        warm|warm_white) rgb="[255, 200, 100]" ;;
+        cool|cool_white) rgb="[200, 220, 255]" ;;
+        *) return 1 ;;
+    esac
+    
+    curl -s -X POST \
+        -H "Authorization: Bearer $HA_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"entity_id\": \"$entity_id\", \"rgb_color\": $rgb}" \
+        "$HA_URL/api/services/light/turn_on" 2>/dev/null
+}
+
+# Helper: Set brightness percentage
+set_brightness_percent() {
+    local entity_id="$1"
+    local percent="$2"
+    
+    # Convert percentage to 0-255 scale
+    local brightness=$((percent * 255 / 100))
     
     curl -s -X POST \
         -H "Authorization: Bearer $HA_TOKEN" \
@@ -75,19 +106,39 @@ skill_execute() {
     # Parse command
     local action=""
     local target=""
+    local brightness=""
+    local color=""
     
-    # Determine action
-    if echo "$cmd_lower" | grep -qE "(turn on|on|bright|light up)"; then
-        action="turn_on"
-    elif echo "$cmd_lower" | grep -qE "(turn off|off|dark)"; then
-        action="turn_off"
-    elif echo "$cmd_lower" | grep -qE "(dim|lower|decrease)"; then
-        action="dim"
-    else
-        # Just list lights
-        local count=$(echo "$lights" | wc -l)
-        speak "I found $count lights in your home. Say 'turn on' or 'turn off' followed by the room name."
-        return 0
+    # Check for brightness percentage (e.g., "50%", "50 percent", "100%")
+    if echo "$cmd_lower" | grep -qE "[0-9]+(%| percent| percent brightness)"; then
+        brightness=$(echo "$cmd_lower" | grep -oE "[0-9]+" | head -1)
+        # Validate range
+        if [ "$brightness" -gt 100 ]; then
+            brightness=100
+        fi
+        action="brightness"
+    fi
+    
+    # Check for color commands
+    if echo "$cmd_lower" | grep -qE "(red|green|blue|yellow|orange|purple|pink|white|warm|cool)"; then
+        color=$(echo "$cmd_lower" | grep -oE "(red|green|blue|yellow|orange|purple|pink|white|warm|cool)")
+        action="color"
+    fi
+    
+    # Determine action if not set by brightness/color
+    if [ -z "$action" ]; then
+        if echo "$cmd_lower" | grep -qE "(turn on|on|bright|light up)"; then
+            action="turn_on"
+        elif echo "$cmd_lower" | grep -qE "(turn off|off|dark)"; then
+            action="turn_off"
+        elif echo "$cmd_lower" | grep -qE "(dim|lower|decrease)"; then
+            action="dim"
+        else
+            # Just list lights
+            local count=$(echo "$lights" | wc -l)
+            speak "I found $count lights in your home. You can say turn on, turn off, set brightness to 50%, or set color to blue."
+            return 0
+        fi
     fi
     
     # Determine target (room/area)
@@ -113,9 +164,23 @@ skill_execute() {
         # Control all lights
         local success=0
         for light in $lights; do
-            if control_light "$light" "$action"; then
-                ((success++))
-            fi
+            case "$action" in
+                brightness)
+                    if set_brightness_percent "$light" "$brightness"; then
+                        ((success++))
+                    fi
+                    ;;
+                color)
+                    if set_color "$light" "$color"; then
+                        ((success++))
+                    fi
+                    ;;
+                *)
+                    if control_light "$light" "$action"; then
+                        ((success++))
+                    fi
+                    ;;
+            esac
         done
         
         if [ $success -gt 0 ]; then
@@ -129,6 +194,12 @@ skill_execute() {
                     ;;
                 dim)
                     speak "I've dimmed $success lights."
+                    ;;
+                brightness)
+                    speak "I've set $success lights to $brightness% brightness."
+                    ;;
+                color)
+                    speak "I've set $success lights to $color."
                     ;;
             esac
         else
@@ -168,9 +239,23 @@ skill_execute() {
             # Control all matching lights
             local success=0
             for light in $found; do
-                if control_light "$light" "$action"; then
-                    ((success++))
-                fi
+                case "$action" in
+                    brightness)
+                        if set_brightness_percent "$light" "$brightness"; then
+                            ((success++))
+                        fi
+                        ;;
+                    color)
+                        if set_color "$light" "$color"; then
+                            ((success++))
+                        fi
+                        ;;
+                    *)
+                        if control_light "$light" "$action"; then
+                            ((success++))
+                        fi
+                        ;;
+                esac
             done
             
             if [ $success -gt 0 ]; then
@@ -186,13 +271,21 @@ skill_execute() {
                     dim)
                         action_word="dimmed"
                         ;;
+                    brightness)
+                        speak "I've set $success $target lights to $brightness% brightness."
+                        ;;
+                    color)
+                        speak "I've set $success $target lights to $color."
+                        ;;
                 esac
                 
-                if [ $success -eq 1 ]; then
-                    local name=$(get_light_name "$found")
-                    speak "I've turned $action_word the $name."
-                else
-                    speak "I've turned $action_word $success $target lights."
+                if [ "$action" = "turn_on" ] || [ "$action" = "turn_off" ] || [ "$action" = "dim" ]; then
+                    if [ $success -eq 1 ]; then
+                        local name=$(get_light_name "$found")
+                        speak "I've turned $action_word the $name."
+                    else
+                        speak "I've turned $action_word $success $target lights."
+                    fi
                 fi
             else
                 speak "Sorry, I couldn't control the lights."
