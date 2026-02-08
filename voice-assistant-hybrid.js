@@ -59,6 +59,15 @@ async function recordAudio() {
   return new Promise((resolve) => {
     console.log('[Recording+++++]');
     
+    // Delete old audio file to start fresh
+    try {
+      if (fs.existsSync(AUDIO_FILE)) {
+        fs.unlinkSync(AUDIO_FILE);
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    
     const record = spawn('pw-record', [
       '--rate', '16000',
       '--channels', '1',
@@ -66,10 +75,11 @@ async function recordAudio() {
       AUDIO_FILE
     ], { stdio: 'ignore' });
     
-    // Record for 5 seconds
+    // Record for 5 seconds then kill with SIGTERM
     setTimeout(() => {
-      record.kill();
-      resolve();
+      record.kill('SIGTERM');
+      // Give it a moment to flush the file
+      setTimeout(resolve, 100);
     }, 5000);
   });
 }
