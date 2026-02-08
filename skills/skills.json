@@ -47,6 +47,12 @@
       "description": "Current trip information"
     },
     
+    "cleanup": {
+      "patterns": ["clean", "cleanup", "free space", "disk space", "analyze disk"],
+      "file": "node/cleanup.js",
+      "description": "Analyze and clean up disk space"
+    },
+    
     "weather": {
       "patterns": ["weather", "forecast", "temperature"],
       "file": "node/weather.js",

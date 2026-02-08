@@ -35,6 +35,7 @@ function computerSay(message) {
 // Level 1: Simple Health Check (30 seconds)
 async function runLevel1Diagnostic() {
   const results = [];
+  const context = []; // Additional context about the stats
 
   // Check Squidworth processes
   try {
@@ -45,6 +46,10 @@ async function runLevel1Diagnostic() {
     results.push(`Voice Assistant: ${voiceProcess !== 'NOT_RUNNING' ? 'Online' : 'Offline'}`);
     results.push(`IPC Bridge: ${ipcProcess !== 'NOT_RUNNING' ? 'Online' : 'Offline'}`);
     results.push(`Whisper Server: ${whisperProcess !== 'NOT_RUNNING' ? 'Online' : 'Offline'}`);
+    
+    if (voiceProcess === 'NOT_RUNNING') {
+      context.push('Voice Assistant process is not running. Try: ./voice-control.sh restart');
+    }
   } catch (e) {
     results.push('Process check: Error');
   }
@@ -52,16 +57,31 @@ async function runLevel1Diagnostic() {
   // Check services
   try {
     const haCheck = execSync('curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null || echo "000"', { encoding: 'utf8' }).trim();
-    results.push(`Home Assistant: ${haCheck === '401' || haCheck === '200' ? 'Online' : 'Offline'}`);
+    const haOnline = haCheck === '401' || haCheck === '200';
+    results.push(`Home Assistant: ${haOnline ? 'Online' : 'Offline'}`);
+    
+    if (!haOnline) {
+      context.push('Home Assistant is not responding. Check if service is running.');
+    }
   } catch (e) {
     results.push('Home Assistant: Check failed');
   }
 
-  // Check disk space
+  // Check disk space with context
   try {
     const diskUsage = execSync("df -h / | tail -1 | awk '{print $5}' | sed 's/%//'", { encoding: 'utf8' }).trim();
     const diskPercent = parseInt(diskUsage);
+    const diskFree = execSync("df -h / | tail -1 | awk '{print $4}'", { encoding: 'utf8' }).trim();
+    
     results.push(`Storage: ${diskPercent}% ${diskPercent > 80 ? 'WARNING' : 'nominal'}`);
+    
+    if (diskPercent > 95) {
+      context.push(`CRITICAL: Disk is ${diskPercent}% full with only ${diskFree} remaining. System may crash soon.`);
+    } else if (diskPercent > 90) {
+      context.push(`WARNING: Disk is ${diskPercent}% full. Free up space to avoid system issues.`);
+    } else if (diskPercent > 80) {
+      context.push(`Disk is ${diskPercent}% full. Monitor usage.`);
+    }
   } catch (e) {
     results.push('Storage check: Error');
   }
@@ -70,6 +90,7 @@ async function runLevel1Diagnostic() {
     level: 1,
     title: "Level 1 Diagnostic - Systems Check",
     results: results,
+    context: context,
     status: results.some(r => r.includes('Offline') || r.includes('Error') || r.includes('WARNING')) ? 'degraded' : 'nominal'
   };
 }
@@ -77,6 +98,7 @@ async function runLevel1Diagnostic() {
 // Level 2: Software Diagnostics + OpenClaw Status
 async function runLevel2Diagnostic() {
   const results = [];
+  const context = [];
 
   // Run Level 1 first
   const level1 = await runLevel1Diagnostic();
@@ -99,17 +121,25 @@ async function runLevel2Diagnostic() {
     results.push('OpenClaw status: Check incomplete');
   }
 
-  // Git status
+  // Git status with context
   try {
     const gitBranch = execSync('git branch --show-current 2>/dev/null || echo "unknown"', { encoding: 'utf8', cwd: '/home/jkinman/RoboDevil' }).trim();
     const gitStatus = execSync('git status --porcelain 2>/dev/null | wc -l', { encoding: 'utf8', cwd: '/home/jkinman/RoboDevil' }).trim();
+    const uncommitted = parseInt(gitStatus);
+    
     results.push(`Git branch: ${gitBranch}`);
     results.push(`Uncommitted changes: ${gitStatus}`);
+    
+    if (uncommitted > 10) {
+      context.push(`WARNING: ${uncommitted} uncommitted changes. Run 'git status' to review.`);
+    } else if (uncommitted > 0) {
+      context.push(`${uncommitted} uncommitted changes. Consider committing soon.`);
+    }
   } catch (e) {
     results.push('Git status: Unavailable');
   }
 
-  // Run unit tests
+  // Run unit tests with context
   results.push('');
   results.push('--- Unit Test Results ---');
   try {
@@ -131,31 +161,54 @@ async function runLevel2Diagnostic() {
 
       if (failed > 0) {
         results.push('WARNING: Some tests failed');
+        context.push(`${failed} unit tests failed. Run 'npm test' for details.`);
       } else {
         results.push('All tests nominal');
       }
     } else {
       results.push('Test status: Unable to parse results');
+      context.push('Unit test status unclear. Run manually with npm test.');
     }
   } catch (e) {
     results.push('Unit tests: Execution failed');
     results.push(`Error: ${e.message}`);
+    context.push('Unit test execution failed. Check test suite.');
   }
 
-  // Load average
+  // Load average with context
   try {
     const loadavg = os.loadavg();
+    const cpuCores = os.cpus().length;
+    const loadPercent = (loadavg[0] / cpuCores) * 100;
+    
     results.push(`Load average: ${loadavg[0].toFixed(2)}`);
+    
+    if (loadPercent > 150) {
+      context.push(`CRITICAL: System severely overloaded. Load ${loadavg[0].toFixed(2)} on ${cpuCores} cores.`);
+    } else if (loadPercent > 100) {
+      context.push(`WARNING: High system load. All CPU cores busy.`);
+    } else if (loadPercent > 70) {
+      context.push(`Load elevated at ${loadavg[0].toFixed(2)}. Monitor if sustained.`);
+    }
   } catch (e) {
     results.push('Load average: Unavailable');
   }
 
-  // Memory
+  // Memory with context
   try {
     const totalMem = Math.round(os.totalmem() / 1024 / 1024);
     const freeMem = Math.round(os.freemem() / 1024 / 1024);
     const usedPercent = Math.round(((totalMem - freeMem) / totalMem) * 100);
+    
     results.push(`Memory: ${usedPercent}% used (${totalMem - freeMem}MB / ${totalMem}MB)`);
+    
+    if (usedPercent > 95) {
+      context.push('CRITICAL: Memory nearly exhausted. OOM kills imminent. Close applications or add swap.');
+    } else if (usedPercent > 85) {
+      context.push('WARNING: High memory usage. System may become unresponsive.');
+    } else if (usedPercent > 75) {
+      context.push('Memory usage elevated. Monitor for leaks.');
+    }
   } catch (e) {
     results.push('Memory status: Unavailable');
   }
@@ -164,6 +217,7 @@ async function runLevel2Diagnostic() {
     level: 2,
     title: "Level 2 Diagnostic - Software Analysis",
     results: results,
+    context: context,
     status: 'nominal'
   };
 }
@@ -408,15 +462,23 @@ async function execute(command, context) {
   let response = `${diagnostic.title}. `;
   response += `Status: ${diagnostic.status}. `;
 
-  // For Level 3, read out ALL details including problems
+  // For Level 3, read out ALL details including problems AND context
   if (level === 3) {
-    // First read Level 1 summary
+    // First read Level 1 summary with context
     const l1Offline = level1Data.results.filter(r => r.includes('Offline')).length;
     const l1Warnings = level1Data.results.filter(r => r.includes('WARNING')).length;
+    
     if (l1Offline > 0 || l1Warnings > 0) {
       response += `Level 1: ${l1Offline} offline, ${l1Warnings} warnings. `;
     } else {
       response += "Level 1: All systems nominal. ";
+    }
+    
+    // Add Level 1 context if any
+    if (level1Data.context && level1Data.context.length > 0) {
+      level1Data.context.forEach(ctx => {
+        response += ctx + ". ";
+      });
     }
 
     // Level 2 summary
@@ -428,6 +490,13 @@ async function execute(command, context) {
     if (testResults) {
       const rateMatch = testResults.match(/(\d+)%/);
       if (rateMatch) response += `Unit tests: ${rateMatch[1]}% pass rate. `;
+    }
+    
+    // Add Level 2 context if any
+    if (level2Data.context && level2Data.context.length > 0) {
+      level2Data.context.forEach(ctx => {
+        response += ctx + ". ";
+      });
     }
 
     // Level 3 - READ OUT THE ACTUAL PROBLEMS
@@ -460,7 +529,7 @@ async function execute(command, context) {
       response += "All critical systems nominal. No issues detected. ";
     }
   } else {
-    // Level 1 and 2 - summarize
+    // Level 1 and 2 - summarize and include context
     const offline = diagnostic.results.filter(r => r.includes('Offline')).length;
     const warnings = diagnostic.results.filter(r => r.includes('WARNING')).length;
     const testResults = diagnostic.results.find(r => r.includes('Success rate'));
@@ -471,7 +540,13 @@ async function execute(command, context) {
       const rateMatch = testResults.match(/(\d+)%/);
       if (rateMatch) response += `Unit tests: ${rateMatch[1]}% pass rate. `;
     }
-    if (offline === 0 && warnings === 0 && !testResults) {
+    
+    // Add context for Level 1 and 2
+    if (diagnostic.context && diagnostic.context.length > 0) {
+      diagnostic.context.forEach(ctx => {
+        response += ctx + ". ";
+      });
+    } else if (offline === 0 && warnings === 0 && !testResults) {
       response += "All systems nominal. ";
     }
   }
