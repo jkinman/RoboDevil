@@ -35,20 +35,20 @@ function computerSay(message) {
 // Level 1: Simple Health Check (30 seconds)
 async function runLevel1Diagnostic() {
   const results = [];
-  
+
   // Check Squidworth processes
   try {
     const voiceProcess = execSync('pgrep -f "voice-assistant" || echo "NOT_RUNNING"', { encoding: 'utf8' }).trim();
     const ipcProcess = execSync('pgrep -f "ipc-bridge" || echo "NOT_RUNNING"', { encoding: 'utf8' }).trim();
     const whisperProcess = execSync('pgrep -f "whisper-server" || echo "NOT_RUNNING"', { encoding: 'utf8' }).trim();
-    
+
     results.push(`Voice Assistant: ${voiceProcess !== 'NOT_RUNNING' ? 'Online' : 'Offline'}`);
     results.push(`IPC Bridge: ${ipcProcess !== 'NOT_RUNNING' ? 'Online' : 'Offline'}`);
     results.push(`Whisper Server: ${whisperProcess !== 'NOT_RUNNING' ? 'Online' : 'Offline'}`);
   } catch (e) {
     results.push('Process check: Error');
   }
-  
+
   // Check services
   try {
     const haCheck = execSync('curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null || echo "000"', { encoding: 'utf8' }).trim();
@@ -56,7 +56,7 @@ async function runLevel1Diagnostic() {
   } catch (e) {
     results.push('Home Assistant: Check failed');
   }
-  
+
   // Check disk space
   try {
     const diskUsage = execSync("df -h / | tail -1 | awk '{print $5}' | sed 's/%//'", { encoding: 'utf8' }).trim();
@@ -65,7 +65,7 @@ async function runLevel1Diagnostic() {
   } catch (e) {
     results.push('Storage check: Error');
   }
-  
+
   return {
     level: 1,
     title: "Level 1 Diagnostic - Systems Check",
@@ -77,19 +77,19 @@ async function runLevel1Diagnostic() {
 // Level 2: Software Diagnostics + OpenClaw Status
 async function runLevel2Diagnostic() {
   const results = [];
-  
+
   // Run Level 1 first
   const level1 = await runLevel1Diagnostic();
   results.push(...level1.results);
   results.push('');
   results.push('--- Software Diagnostics ---');
-  
+
   // OpenClaw Status
   try {
     results.push('OpenClaw Gateway: Online');
     results.push(`Node.js Version: ${process.version}`);
     results.push(`Platform: ${process.platform}`);
-    
+
     // Check npm packages
     const packageJson = require('../package.json');
     const deps = Object.keys(packageJson.dependencies || {}).length;
@@ -98,7 +98,7 @@ async function runLevel2Diagnostic() {
   } catch (e) {
     results.push('OpenClaw status: Check incomplete');
   }
-  
+
   // Git status
   try {
     const gitBranch = execSync('git branch --show-current 2>/dev/null || echo "unknown"', { encoding: 'utf8', cwd: '/home/jkinman/RoboDevil' }).trim();
@@ -108,27 +108,27 @@ async function runLevel2Diagnostic() {
   } catch (e) {
     results.push('Git status: Unavailable');
   }
-  
+
   // Run unit tests
   results.push('');
   results.push('--- Unit Test Results ---');
   try {
     const testOutput = execSync('cd /home/jkinman/RoboDevil && npm run test:health 2>&1 | tail -20', { encoding: 'utf8', timeout: 60000 });
-    
+
     // Parse test results
     const passedMatch = testOutput.match(/Passed:\s*(\d+)/);
     const failedMatch = testOutput.match(/Failed:\s*(\d+)/);
     const rateMatch = testOutput.match(/Success Rate:\s*(\d+)/);
-    
+
     if (passedMatch && failedMatch) {
       const passed = parseInt(passedMatch[1]);
       const failed = parseInt(failedMatch[1]);
       const rate = rateMatch ? rateMatch[1] : '0';
-      
+
       results.push(`Tests passed: ${passed}`);
       results.push(`Tests failed: ${failed}`);
       results.push(`Success rate: ${rate}%`);
-      
+
       if (failed > 0) {
         results.push('WARNING: Some tests failed');
       } else {
@@ -141,7 +141,7 @@ async function runLevel2Diagnostic() {
     results.push('Unit tests: Execution failed');
     results.push(`Error: ${e.message}`);
   }
-  
+
   // Load average
   try {
     const loadavg = os.loadavg();
@@ -149,7 +149,7 @@ async function runLevel2Diagnostic() {
   } catch (e) {
     results.push('Load average: Unavailable');
   }
-  
+
   // Memory
   try {
     const totalMem = Math.round(os.totalmem() / 1024 / 1024);
@@ -159,7 +159,7 @@ async function runLevel2Diagnostic() {
   } catch (e) {
     results.push('Memory status: Unavailable');
   }
-  
+
   return {
     level: 2,
     title: "Level 2 Diagnostic - Software Analysis",
@@ -172,9 +172,9 @@ async function runLevel2Diagnostic() {
 async function runLevel3Diagnostic() {
   const results = [];
   const warnings = [];
-  
+
   results.push('--- Critical System Health ---');
-  
+
   // 1. CPU Temperature (Dynamic - changes with load)
   try {
     const temp = execSync("vcgencmd measure_temp 2>/dev/null | cut -d= -f2 | cut -d' -f1 || echo 'N/A'", { encoding: 'utf8' }).trim();
@@ -191,7 +191,7 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Temperature: Unavailable');
   }
-  
+
   // 2. Power/Undervoltage (Causes SD card corruption, instability)
   try {
     const throttled = execSync("vcgencmd get_throttled 2>/dev/null | cut -d= -f2 || echo 'unknown'", { encoding: 'utf8' }).trim();
@@ -212,14 +212,14 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Power status: Check unavailable');
   }
-  
+
   // 3. Memory Pressure (Dynamic - can cause OOM kills)
   try {
     const totalMem = Math.round(os.totalmem() / 1024 / 1024);
     const freeMem = Math.round(os.freemem() / 1024 / 1024);
     const availableMem = Math.round(parseInt(execSync("cat /proc/meminfo | grep MemAvailable | awk '{print $2}'", { encoding: 'utf8' }).trim()) / 1024);
     const usedPercent = Math.round(((totalMem - availableMem) / totalMem) * 100);
-    
+
     if (usedPercent > 95) {
       warnings.push(`CRITICAL: Memory pressure ${usedPercent}% - OOM kills imminent`);
     } else if (usedPercent > 85) {
@@ -227,7 +227,7 @@ async function runLevel3Diagnostic() {
     } else {
       results.push(`Memory pressure: ${usedPercent}% - acceptable`);
     }
-    
+
     // Check swap usage (indicates memory pressure)
     const swapUsed = parseInt(execSync("free -m | grep Swap | awk '{print $3}'", { encoding: 'utf8' }).trim());
     if (swapUsed > 500) {
@@ -240,13 +240,13 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Memory status: Check unavailable');
   }
-  
+
   // 4. Disk Space (Dynamic - fills up over time)
   try {
     const diskUsage = execSync("df -h / | tail -1 | awk '{print $5}' | sed 's/%//'", { encoding: 'utf8' }).trim();
     const diskPercent = parseInt(diskUsage);
     const diskFree = execSync("df -h / | tail -1 | awk '{print $4}'", { encoding: 'utf8' }).trim();
-    
+
     if (diskPercent > 95) {
       warnings.push(`CRITICAL: Disk ${diskPercent}% full - only ${diskFree} remaining`);
     } else if (diskPercent > 85) {
@@ -257,7 +257,7 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Disk status: Check unavailable');
   }
-  
+
   // 5. I/O Wait (Dynamic - indicates disk/SD card problems)
   try {
     const iowait = execSync("top -bn1 | grep 'Cpu(s)' | awk '{print $10}' | sed 's/%wa,//'", { encoding: 'utf8' }).trim();
@@ -272,13 +272,13 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('I/O status: Check unavailable');
   }
-  
+
   // 6. Load Average (Dynamic - system stress indicator)
   try {
     const loadavg = os.loadavg();
     const cpuCores = os.cpus().length;
     const loadPercent = (loadavg[0] / cpuCores) * 100;
-    
+
     if (loadPercent > 200) {
       warnings.push(`CRITICAL: System overloaded - load ${loadavg[0].toFixed(2)} on ${cpuCores} cores`);
     } else if (loadPercent > 100) {
@@ -291,7 +291,7 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Load status: Check unavailable');
   }
-  
+
   // 7. Failed Systemd Units (Services that crashed)
   try {
     const failedUnits = execSync("systemctl --failed --no-pager --no-legend 2>/dev/null | wc -l", { encoding: 'utf8' }).trim();
@@ -304,7 +304,7 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Services: Check unavailable');
   }
-  
+
   // 8. Zombie Processes (Indicate process issues)
   try {
     const zombies = execSync("ps aux | grep -c '[Zz]ombie' || echo '0'", { encoding: 'utf8' }).trim();
@@ -319,7 +319,7 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Process status: Check unavailable');
   }
-  
+
   // 9. Recent System Errors (Last hour)
   try {
     const recentErrors = execSync("journalctl --priority=err --since '1 hour ago' --no-pager 2>/dev/null | wc -l || echo '0'", { encoding: 'utf8' }).trim();
@@ -334,13 +334,13 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Error log: Check unavailable');
   }
-  
+
   // 10. Network Issues (Packet errors)
   try {
     const eth0Errors = execSync("cat /sys/class/net/eth0/statistics/rx_errors 2>/dev/null || echo '0'", { encoding: 'utf8' }).trim();
     const eth0Drops = execSync("cat /sys/class/net/eth0/statistics/rx_dropped 2>/dev/null || echo '0'", { encoding: 'utf8' }).trim();
     const errorCount = parseInt(eth0Errors) + parseInt(eth0Drops);
-    
+
     if (errorCount > 100) {
       warnings.push(`WARNING: Network errors/drops: ${errorCount} - check cable/interface`);
     } else if (errorCount > 0) {
@@ -351,10 +351,10 @@ async function runLevel3Diagnostic() {
   } catch (e) {
     results.push('Network: Check unavailable');
   }
-  
+
   // Combine results - warnings first, then normal results
   const finalResults = [...warnings, '', ...results];
-  
+
   return {
     level: 3,
     title: "Level 3 Diagnostic - Critical System Health",
@@ -368,24 +368,27 @@ async function runLevel3Diagnostic() {
 // Main skill execution
 async function execute(command, context) {
   const cmdLower = command.toLowerCase();
-  
+
   // Parse level
   let level = null;
   const levelMatch = cmdLower.match(/level\s*(\d)/i);
   if (levelMatch) {
     level = parseInt(levelMatch[1]);
   }
-  
+
   if (!level || level < 1 || level > 3) {
     return "Please specify a diagnostic level between 1 and 3. Say 'run level 1 diagnostic' for a systems check, 'level 2' for software analysis, or 'level 3' for critical health scan.";
   }
-  
+
   // Acknowledge like TNG computer
   const acknowledge = COMPUTER_VOICE.acknowledge[Math.floor(Math.random() * COMPUTER_VOICE.acknowledge.length)];
   await context.speak(computerSay(acknowledge));
-  
+
   // Run appropriate diagnostic
   let diagnostic;
+  let level1Data = null;
+  let level2Data = null;
+
   switch (level) {
     case 1:
       diagnostic = await runLevel1Diagnostic();
@@ -394,28 +397,74 @@ async function execute(command, context) {
       diagnostic = await runLevel2Diagnostic();
       break;
     case 3:
+      // Run all three levels and combine
+      level1Data = await runLevel1Diagnostic();
+      level2Data = await runLevel2Diagnostic();
       diagnostic = await runLevel3Diagnostic();
       break;
   }
-  
+
   // Build response
   let response = `${diagnostic.title}. `;
   response += `Status: ${diagnostic.status}. `;
-  
-  // Summarize key findings
+
+  // For Level 3, read out ALL details including problems
   if (level === 3) {
-    if (diagnostic.criticalCount > 0) {
-      response += `${diagnostic.criticalCount} CRITICAL issues detected. Immediate attention required. `;
-    } else if (diagnostic.warningCount > 0) {
-      response += `${diagnostic.warningCount} warnings detected. `;
+    // First read Level 1 summary
+    const l1Offline = level1Data.results.filter(r => r.includes('Offline')).length;
+    const l1Warnings = level1Data.results.filter(r => r.includes('WARNING')).length;
+    if (l1Offline > 0 || l1Warnings > 0) {
+      response += `Level 1: ${l1Offline} offline, ${l1Warnings} warnings. `;
     } else {
-      response += "All critical systems nominal. ";
+      response += "Level 1: All systems nominal. ";
+    }
+
+    // Level 2 summary
+    const l2Warnings = level2Data.results.filter(r => r.includes('WARNING')).length;
+    const testResults = level2Data.results.find(r => r.includes('Success rate'));
+    if (l2Warnings > 0) {
+      response += `Level 2: ${l2Warnings} warnings. `;
+    }
+    if (testResults) {
+      const rateMatch = testResults.match(/(\d+)%/);
+      if (rateMatch) response += `Unit tests: ${rateMatch[1]}% pass rate. `;
+    }
+
+    // Level 3 - READ OUT THE ACTUAL PROBLEMS
+    response += "Hardware diagnostic results. ";
+
+    // Get warnings and criticals from Level 3
+    const warnings = diagnostic.results.filter(r => r && r.includes('WARNING'));
+    const criticals = diagnostic.results.filter(r => r && r.includes('CRITICAL'));
+
+    if (criticals.length > 0) {
+      response += `${criticals.length} CRITICAL issues. `;
+      // Read out each critical issue
+      criticals.forEach(c => {
+        // Clean up the message for TTS
+        const cleanMsg = c.replace('CRITICAL:', 'Critical issue.').replace('WARNING:', 'Warning.');
+        response += cleanMsg + ". ";
+      });
+    }
+
+    if (warnings.length > 0) {
+      if (criticals.length === 0) response += `${warnings.length} warnings. `;
+      // Read out each warning
+      warnings.forEach(w => {
+        const cleanMsg = w.replace('WARNING:', 'Warning.').replace('CRITICAL:', 'Critical.');
+        response += cleanMsg + ". ";
+      });
+    }
+
+    if (criticals.length === 0 && warnings.length === 0) {
+      response += "All critical systems nominal. No issues detected. ";
     }
   } else {
+    // Level 1 and 2 - summarize
     const offline = diagnostic.results.filter(r => r.includes('Offline')).length;
     const warnings = diagnostic.results.filter(r => r.includes('WARNING')).length;
     const testResults = diagnostic.results.find(r => r.includes('Success rate'));
-    
+
     if (offline > 0) response += `${offline} systems offline. `;
     if (warnings > 0) response += `${warnings} warnings detected. `;
     if (testResults) {
@@ -426,9 +475,9 @@ async function execute(command, context) {
       response += "All systems nominal. ";
     }
   }
-  
+
   response += COMPUTER_VOICE.complete[Math.floor(Math.random() * COMPUTER_VOICE.complete.length)];
-  
+
   return response;
 }
 
