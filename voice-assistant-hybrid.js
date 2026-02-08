@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const { exec, spawn } = require('child_process');
-const { HybridSkillLoader } = require('./skill-loader');
+const { HybridSkillLoader } = require('./skills/skill-loader');
 
 // Configuration
 const AUDIO_FILE = '/tmp/voice-assistant.wav';
@@ -115,7 +115,7 @@ async function main() {
   console.log('==============================================');
   
   // Load skills
-  const skillLoader = new HybridSkillLoader(path.join(__dirname, 'node'));
+  const skillLoader = new HybridSkillLoader(path.join(__dirname, 'skills'));
   await skillLoader.load();
   
   const skills = skillLoader.listSkills();

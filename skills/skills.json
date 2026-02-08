@@ -25,31 +25,31 @@
   "nodeSkills": {
     "lights": {
       "patterns": ["light", "lights", "turn on", "turn off", "brightness", "dim", "color"],
-      "file": "lights.js",
+      "file": "node/lights.js",
       "description": "Control home lights via Home Assistant"
     },
     
     "computer": {
-      "patterns": ["diagnostic", "run level", "level 1", "level 2", "level 3", "computer"],
-      "file": "computer.js",
+      "patterns": ["diagnostic", "run level", "level 1", "level 2", "level 3", "Squidworth"],
+      "file": "node/computer.js",
       "description": "Star Trek TNG style computer diagnostics"
     },
     
     "presence": {
       "patterns": ["who is home", "who is here", "anyone home"],
-      "file": "presence.js",
+      "file": "node/presence.js",
       "description": "Detect who is home"
     },
     
     "trip": {
       "patterns": ["trip", "vacation", "travel"],
-      "file": "trip.js",
+      "file": "node/trip.js",
       "description": "Current trip information"
     },
     
     "weather": {
       "patterns": ["weather", "forecast", "temperature"],
-      "file": "weather.js",
+      "file": "node/weather.js",
       "description": "Weather information"
     }
   }
