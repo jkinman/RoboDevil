@@ -1,6 +1,7 @@
 /**
  * Light Control Skill (Node.js)
  * Complex skill with Home Assistant integration
+ * Supports flexible sentence structures
  */
 
 const axios = require('axios');
@@ -42,64 +43,105 @@ async function getLights() {
 
 // Main skill execution
 async function execute(command, context) {
-  const cmdLower = command.toLowerCase();
+  const cmdLower = command.toLowerCase().trim();
   
-  // Parse brightness
+  // DEBUG: Log what we received
+  console.log(`  [lights] Processing: "${cmdLower}"`);
+  
+  // Parse brightness - look for patterns like "50%", "50 percent"
   let brightness = null;
-  const brightnessMatch = cmdLower.match(/(\d+)\s*(%|percent)/);
+  const brightnessMatch = cmdLower.match(/(\d+)\s*(%|percent|percent brightness)/);
   if (brightnessMatch) {
     brightness = Math.min(100, parseInt(brightnessMatch[1]));
+    console.log(`  [lights] Found brightness: ${brightness}%`);
   }
   
-  // Parse color
+  // Parse color - check if color words appear anywhere in command
   const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'white', 'warm', 'cool', 'cold'];
   let color = null;
   for (const c of colors) {
-    if (cmdLower.includes(c)) {
+    // Use word boundary check to avoid partial matches
+    const colorRegex = new RegExp(`\\b${c}\\b`);
+    if (colorRegex.test(cmdLower)) {
       color = c;
+      console.log(`  [lights] Found color: ${color}`);
       break;
     }
   }
   
   // Parse target room
-  const rooms = ['bedroom', 'living', 'hallway', 'kitchen', 'entrance', 'all'];
+  const rooms = ['bedroom', 'living', 'living room', 'hallway', 'kitchen', 'entrance', 'all'];
   let target = null;
   for (const room of rooms) {
     if (cmdLower.includes(room)) {
-      target = room;
+      target = room.replace(' ', '_'); // living room -> living_room
+      console.log(`  [lights] Found room: ${target}`);
       break;
     }
   }
   
-  // Parse action
+  // Parse action - be more flexible with sentence structures
   let action = null;
-  if (cmdLower.includes('turn on') || cmdLower.includes('on')) {
+  
+  // Direct on/off commands
+  if (cmdLower.includes('turn on') || cmdLower.match(/\bon\b/)) {
     action = 'turn_on';
-  } else if (cmdLower.includes('turn off') || cmdLower.includes('off')) {
+    console.log(`  [lights] Action: turn_on`);
+  } else if (cmdLower.includes('turn off') || cmdLower.match(/\boff\b/)) {
     action = 'turn_off';
-  } else if (brightness !== null) {
+    console.log(`  [lights] Action: turn_off`);
+  } 
+  // Brightness commands - various ways to say it
+  else if (brightness !== null && (
+    cmdLower.includes('set') || 
+    cmdLower.includes('brightness') || 
+    cmdLower.includes('dim') ||
+    cmdLower.includes('bright') ||
+    cmdLower.includes('make')
+  )) {
     action = 'brightness';
-  } else if (color !== null) {
+    console.log(`  [lights] Action: brightness`);
+  }
+  // Color commands - various ways to say it
+  else if (color !== null && (
+    cmdLower.includes('color') ||
+    cmdLower.includes('set') ||
+    cmdLower.includes('make') ||
+    cmdLower.includes('change') ||
+    cmdLower.includes('switch') ||
+    cmdLower.includes('to') ||
+    cmdLower.includes('the')
+  )) {
     action = 'color';
+    console.log(`  [lights] Action: color (${color})`);
+  }
+  // Fallback: if we have a color but no other action detected, assume color change
+  else if (color !== null) {
+    action = 'color';
+    console.log(`  [lights] Action: color (fallback, ${color})`);
   }
   
   if (!action) {
-    return "I can turn lights on/off, set brightness (0-100%), or change colors. Try 'turn on bedroom lights', 'set lights to 50%', or 'set lights to warm/cool/red/blue'";
+    console.log(`  [lights] No action detected`);
+    return "I can turn lights on/off, set brightness (0-100%), or change colors. Try 'turn on bedroom lights', 'set lights to 50%', 'make lights warm', or 'change lights to blue'";
   }
   
   // Get lights
   const lights = await getLights();
   let targetLights = lights;
   
+  console.log(`  [lights] Total lights: ${lights.length}`);
+  
   // Filter by room
   if (target && target !== 'all') {
     targetLights = lights.filter(light => 
       light.toLowerCase().includes(target.toLowerCase())
     );
+    console.log(`  [lights] Filtered to ${targetLights.length} lights for room: ${target}`);
   }
   
   if (targetLights.length === 0) {
-    return `I couldn't find any lights matching '${target}'`;
+    return `I couldn't find any lights matching '${target || 'all'}'`;
   }
   
   // Execute action
@@ -138,13 +180,13 @@ async function execute(command, context) {
       }
       success++;
     } catch (err) {
-      console.error(`Failed to control ${light}:`, err.message);
+      console.error(`  [lights] Failed to control ${light}:`, err.message);
     }
   }
   
   // Response
   if (success > 0) {
-    const roomName = target === 'all' ? '' : target + ' ';
+    const roomName = target === 'all' || !target ? '' : target.replace('_', ' ') + ' ';
     
     switch (action) {
       case 'turn_on':
