@@ -29,7 +29,6 @@ const COMPUTER_VOICE = {
 };
 
 function computerSay(message) {
-  // Add slight computer-style pauses with periods
   return message.replace(/\./g, '.').trim();
 }
 
@@ -169,123 +168,200 @@ async function runLevel2Diagnostic() {
   };
 }
 
-// Level 3: Full Diagnostic (Hardware + Everything)
+// Level 3: Critical System Health - Dynamic/Problem Indicators Only
 async function runLevel3Diagnostic() {
   const results = [];
+  const warnings = [];
   
-  // Run Level 2 first (includes tests)
-  const level2 = await runLevel2Diagnostic();
-  results.push(...level2.results);
-  results.push('');
-  results.push('--- Hardware Diagnostics ---');
+  results.push('--- Critical System Health ---');
   
-  // CPU Info - Raspberry Pi specific
-  try {
-    // Try Raspberry Pi model first
-    let cpuModel = 'Unknown';
-    try {
-      cpuModel = execSync("cat /proc/device-tree/model 2>/dev/null | tr -d '\\0' || echo 'Unknown'", { encoding: 'utf8' }).trim();
-    } catch (e) {
-      // Fallback to cpuinfo
-      cpuModel = execSync("cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d: -f2 | xargs || echo 'Unknown'", { encoding: 'utf8' }).trim();
-    }
-    const cpuCores = os.cpus().length;
-    const cpuSpeed = os.cpus()[0]?.speed || 'unknown';
-    results.push(`CPU: ${cpuModel}`);
-    results.push(`CPU Cores: ${cpuCores} at ${cpuSpeed} MHz`);
-  } catch (e) {
-    results.push('CPU: Information unavailable');
-  }
-  
-  // Temperature (Raspberry Pi specific)
+  // 1. CPU Temperature (Dynamic - changes with load)
   try {
     const temp = execSync("vcgencmd measure_temp 2>/dev/null | cut -d= -f2 | cut -d' -f1 || echo 'N/A'", { encoding: 'utf8' }).trim();
     if (temp !== 'N/A') {
       const tempNum = parseFloat(temp);
-      results.push(`CPU Temperature: ${temp}°C ${tempNum > 80 ? 'WARNING - Overheating' : tempNum > 70 ? 'CAUTION - Warm' : 'Normal'}`);
-    } else {
-      results.push('CPU Temperature: Sensor not available');
+      if (tempNum > 80) {
+        warnings.push(`CRITICAL: CPU temperature ${temp}°C - thermal throttling imminent`);
+      } else if (tempNum > 70) {
+        warnings.push(`WARNING: CPU temperature ${temp}°C - elevated`);
+      } else {
+        results.push(`CPU temperature: ${temp}°C - normal`);
+      }
     }
   } catch (e) {
     results.push('Temperature: Unavailable');
   }
   
-  // Memory Details
-  try {
-    const totalMem = Math.round(os.totalmem() / 1024 / 1024);
-    const freeMem = Math.round(os.freemem() / 1024 / 1024);
-    const usedMem = totalMem - freeMem;
-    const usedPercent = Math.round((usedMem / totalMem) * 100);
-    results.push(`Memory: ${usedMem}MB used / ${totalMem}MB total (${usedPercent}%)`);
-  } catch (e) {
-    results.push('Memory: Unavailable');
-  }
-  
-  // Disk details
-  try {
-    const diskInfo = execSync("df -h / | tail -1 | awk '{print \"Total:\", \\$2, \" Used:\", \\$3, \" Free:\", \\$4, \" Usage:\", \\$5}'", { encoding: 'utf8' }).trim();
-    results.push(`Storage: ${diskInfo}`);
-    
-    // Check for large temp files
-    const largeFiles = execSync("find /tmp -type f -size +10M 2>/dev/null | wc -l || echo '0'", { encoding: 'utf8' }).trim();
-    if (parseInt(largeFiles) > 0) {
-      results.push(`Large temp files: ${largeFiles}`);
-    }
-  } catch (e) {
-    results.push('Storage: Unavailable');
-  }
-  
-  // Network
-  try {
-    const hostname = os.hostname();
-    const networkInterfaces = os.networkInterfaces();
-    const eth0 = networkInterfaces['eth0'];
-    const wlan0 = networkInterfaces['wlan0'];
-    
-    if (eth0) {
-      const ip = eth0.find(i => i.family === 'IPv4');
-      if (ip) results.push(`Ethernet: ${ip.address}`);
-    }
-    if (wlan0) {
-      const ip = wlan0.find(i => i.family === 'IPv4');
-      if (ip) results.push(`WiFi: ${ip.address}`);
-    }
-    results.push(`Hostname: ${hostname}`);
-  } catch (e) {
-    results.push('Network: Unavailable');
-  }
-  
-  // Uptime
-  try {
-    const uptime = execSync("uptime -p 2>/dev/null || uptime | awk -F',' '{print $1}'", { encoding: 'utf8' }).trim();
-    results.push(`Uptime: ${uptime}`);
-  } catch (e) {
-    results.push('Uptime: Unavailable');
-  }
-  
-  // Raspberry Pi specific: Throttling status
+  // 2. Power/Undervoltage (Causes SD card corruption, instability)
   try {
     const throttled = execSync("vcgencmd get_throttled 2>/dev/null | cut -d= -f2 || echo 'unknown'", { encoding: 'utf8' }).trim();
     if (throttled !== '0x0' && throttled !== 'unknown') {
-      results.push(`WARNING: CPU throttling detected: ${throttled}`);
+      const throttledHex = parseInt(throttled, 16);
+      // Decode throttled bits
+      if (throttledHex & 0x1) warnings.push('CRITICAL: Under-voltage detected - power supply insufficient');
+      if (throttledHex & 0x2) warnings.push('WARNING: ARM frequency capped due to temperature');
+      if (throttledHex & 0x4) warnings.push('WARNING: Currently throttled');
+      if (throttledHex & 0x8) warnings.push('WARNING: Soft temperature limit active');
+      if (throttledHex & 0x10000) warnings.push('HISTORY: Under-voltage occurred since boot');
+      if (throttledHex & 0x20000) warnings.push('HISTORY: ARM frequency capped since boot');
+      if (throttledHex & 0x40000) warnings.push('HISTORY: Throttling occurred since boot');
+      if (throttledHex & 0x80000) warnings.push('HISTORY: Soft temperature limit reached since boot');
+    } else {
+      results.push('Power status: Nominal - no throttling');
     }
   } catch (e) {
-    // Ignore - not critical
+    results.push('Power status: Check unavailable');
   }
   
-  // Swap info
+  // 3. Memory Pressure (Dynamic - can cause OOM kills)
   try {
-    const swapInfo = execSync("free -m | grep Swap | awk '{print \"Total:\", \\$2, \" Used:\", \\$3}'", { encoding: 'utf8' }).trim();
-    results.push(`Swap: ${swapInfo}`);
+    const totalMem = Math.round(os.totalmem() / 1024 / 1024);
+    const freeMem = Math.round(os.freemem() / 1024 / 1024);
+    const availableMem = Math.round(parseInt(execSync("cat /proc/meminfo | grep MemAvailable | awk '{print $2}'", { encoding: 'utf8' }).trim()) / 1024);
+    const usedPercent = Math.round(((totalMem - availableMem) / totalMem) * 100);
+    
+    if (usedPercent > 95) {
+      warnings.push(`CRITICAL: Memory pressure ${usedPercent}% - OOM kills imminent`);
+    } else if (usedPercent > 85) {
+      warnings.push(`WARNING: Memory pressure ${usedPercent}% - elevated`);
+    } else {
+      results.push(`Memory pressure: ${usedPercent}% - acceptable`);
+    }
+    
+    // Check swap usage (indicates memory pressure)
+    const swapUsed = parseInt(execSync("free -m | grep Swap | awk '{print $3}'", { encoding: 'utf8' }).trim());
+    if (swapUsed > 500) {
+      warnings.push(`WARNING: Heavy swap usage ${swapUsed}MB - system thrashing`);
+    } else if (swapUsed > 100) {
+      results.push(`Swap usage: ${swapUsed}MB - light`);
+    } else {
+      results.push(`Swap usage: ${swapUsed}MB - minimal`);
+    }
   } catch (e) {
-    // Ignore
+    results.push('Memory status: Check unavailable');
   }
+  
+  // 4. Disk Space (Dynamic - fills up over time)
+  try {
+    const diskUsage = execSync("df -h / | tail -1 | awk '{print $5}' | sed 's/%//'", { encoding: 'utf8' }).trim();
+    const diskPercent = parseInt(diskUsage);
+    const diskFree = execSync("df -h / | tail -1 | awk '{print $4}'", { encoding: 'utf8' }).trim();
+    
+    if (diskPercent > 95) {
+      warnings.push(`CRITICAL: Disk ${diskPercent}% full - only ${diskFree} remaining`);
+    } else if (diskPercent > 85) {
+      warnings.push(`WARNING: Disk ${diskPercent}% full`);
+    } else {
+      results.push(`Disk usage: ${diskPercent}% - healthy`);
+    }
+  } catch (e) {
+    results.push('Disk status: Check unavailable');
+  }
+  
+  // 5. I/O Wait (Dynamic - indicates disk/SD card problems)
+  try {
+    const iowait = execSync("top -bn1 | grep 'Cpu(s)' | awk '{print $10}' | sed 's/%wa,//'", { encoding: 'utf8' }).trim();
+    const iowaitNum = parseFloat(iowait);
+    if (iowaitNum > 20) {
+      warnings.push(`CRITICAL: High I/O wait ${iowaitNum}% - SD card may be failing`);
+    } else if (iowaitNum > 10) {
+      warnings.push(`WARNING: Elevated I/O wait ${iowaitNum}%`);
+    } else {
+      results.push(`I/O wait: ${iowaitNum}% - normal`);
+    }
+  } catch (e) {
+    results.push('I/O status: Check unavailable');
+  }
+  
+  // 6. Load Average (Dynamic - system stress indicator)
+  try {
+    const loadavg = os.loadavg();
+    const cpuCores = os.cpus().length;
+    const loadPercent = (loadavg[0] / cpuCores) * 100;
+    
+    if (loadPercent > 200) {
+      warnings.push(`CRITICAL: System overloaded - load ${loadavg[0].toFixed(2)} on ${cpuCores} cores`);
+    } else if (loadPercent > 100) {
+      warnings.push(`WARNING: High load ${loadavg[0].toFixed(2)} - all cores busy`);
+    } else if (loadPercent > 70) {
+      results.push(`Load: ${loadavg[0].toFixed(2)} - elevated`);
+    } else {
+      results.push(`Load: ${loadavg[0].toFixed(2)} - normal`);
+    }
+  } catch (e) {
+    results.push('Load status: Check unavailable');
+  }
+  
+  // 7. Failed Systemd Units (Services that crashed)
+  try {
+    const failedUnits = execSync("systemctl --failed --no-pager --no-legend 2>/dev/null | wc -l", { encoding: 'utf8' }).trim();
+    const failedCount = parseInt(failedUnits);
+    if (failedCount > 0) {
+      warnings.push(`WARNING: ${failedCount} failed systemd units detected`);
+    } else {
+      results.push('Services: All systemd units active');
+    }
+  } catch (e) {
+    results.push('Services: Check unavailable');
+  }
+  
+  // 8. Zombie Processes (Indicate process issues)
+  try {
+    const zombies = execSync("ps aux | grep -c '[Zz]ombie' || echo '0'", { encoding: 'utf8' }).trim();
+    const zombieCount = parseInt(zombies);
+    if (zombieCount > 5) {
+      warnings.push(`WARNING: ${zombieCount} zombie processes - parent processes not reaping children`);
+    } else if (zombieCount > 0) {
+      results.push(`Zombies: ${zombieCount} - minor`);
+    } else {
+      results.push('Zombies: None');
+    }
+  } catch (e) {
+    results.push('Process status: Check unavailable');
+  }
+  
+  // 9. Recent System Errors (Last hour)
+  try {
+    const recentErrors = execSync("journalctl --priority=err --since '1 hour ago' --no-pager 2>/dev/null | wc -l || echo '0'", { encoding: 'utf8' }).trim();
+    const errorCount = parseInt(recentErrors);
+    if (errorCount > 10) {
+      warnings.push(`WARNING: ${errorCount} errors in last hour`);
+    } else if (errorCount > 0) {
+      results.push(`Recent errors: ${errorCount} in last hour`);
+    } else {
+      results.push('Recent errors: None in last hour');
+    }
+  } catch (e) {
+    results.push('Error log: Check unavailable');
+  }
+  
+  // 10. Network Issues (Packet errors)
+  try {
+    const eth0Errors = execSync("cat /sys/class/net/eth0/statistics/rx_errors 2>/dev/null || echo '0'", { encoding: 'utf8' }).trim();
+    const eth0Drops = execSync("cat /sys/class/net/eth0/statistics/rx_dropped 2>/dev/null || echo '0'", { encoding: 'utf8' }).trim();
+    const errorCount = parseInt(eth0Errors) + parseInt(eth0Drops);
+    
+    if (errorCount > 100) {
+      warnings.push(`WARNING: Network errors/drops: ${errorCount} - check cable/interface`);
+    } else if (errorCount > 0) {
+      results.push(`Network errors: ${errorCount} - minor`);
+    } else {
+      results.push('Network: No errors');
+    }
+  } catch (e) {
+    results.push('Network: Check unavailable');
+  }
+  
+  // Combine results - warnings first, then normal results
+  const finalResults = [...warnings, '', ...results];
   
   return {
     level: 3,
-    title: "Level 3 Diagnostic - Full System Scan",
-    results: results,
-    status: 'nominal'
+    title: "Level 3 Diagnostic - Critical System Health",
+    results: finalResults,
+    status: warnings.length > 0 ? (warnings.some(w => w.includes('CRITICAL')) ? 'critical' : 'degraded') : 'nominal',
+    warningCount: warnings.length,
+    criticalCount: warnings.filter(w => w.includes('CRITICAL')).length
   };
 }
 
@@ -301,7 +377,7 @@ async function execute(command, context) {
   }
   
   if (!level || level < 1 || level > 3) {
-    return "Please specify a diagnostic level between 1 and 3. Say 'run level 1 diagnostic' for a systems check, 'level 2' for software analysis, or 'level 3' for full hardware scan.";
+    return "Please specify a diagnostic level between 1 and 3. Say 'run level 1 diagnostic' for a systems check, 'level 2' for software analysis, or 'level 3' for critical health scan.";
   }
   
   // Acknowledge like TNG computer
@@ -327,24 +403,28 @@ async function execute(command, context) {
   response += `Status: ${diagnostic.status}. `;
   
   // Summarize key findings
-  const offline = diagnostic.results.filter(r => r.includes('Offline')).length;
-  const warnings = diagnostic.results.filter(r => r.includes('WARNING')).length;
-  const testResults = diagnostic.results.find(r => r.includes('Success rate'));
-  
-  if (offline > 0) {
-    response += `${offline} systems offline. `;
-  }
-  if (warnings > 0) {
-    response += `${warnings} warnings detected. `;
-  }
-  if (testResults) {
-    const rateMatch = testResults.match(/(\d+)%/);
-    if (rateMatch) {
-      response += `Unit tests: ${rateMatch[1]}% pass rate. `;
+  if (level === 3) {
+    if (diagnostic.criticalCount > 0) {
+      response += `${diagnostic.criticalCount} CRITICAL issues detected. Immediate attention required. `;
+    } else if (diagnostic.warningCount > 0) {
+      response += `${diagnostic.warningCount} warnings detected. `;
+    } else {
+      response += "All critical systems nominal. ";
     }
-  }
-  if (offline === 0 && warnings === 0 && !testResults) {
-    response += "All systems nominal. ";
+  } else {
+    const offline = diagnostic.results.filter(r => r.includes('Offline')).length;
+    const warnings = diagnostic.results.filter(r => r.includes('WARNING')).length;
+    const testResults = diagnostic.results.find(r => r.includes('Success rate'));
+    
+    if (offline > 0) response += `${offline} systems offline. `;
+    if (warnings > 0) response += `${warnings} warnings detected. `;
+    if (testResults) {
+      const rateMatch = testResults.match(/(\d+)%/);
+      if (rateMatch) response += `Unit tests: ${rateMatch[1]}% pass rate. `;
+    }
+    if (offline === 0 && warnings === 0 && !testResults) {
+      response += "All systems nominal. ";
+    }
   }
   
   response += COMPUTER_VOICE.complete[Math.floor(Math.random() * COMPUTER_VOICE.complete.length)];
