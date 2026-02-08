@@ -22,6 +22,10 @@ const responseQueue = [];
 const commandQueue = [];
 const healthMap = new Map();
 
+// NEW: AI Response Queue for voice assistant integration
+const aiResponseQueue = [];
+const aiResponseMaxAge = 60000; // 60 seconds max age for responses
+
 startHealthPing({ name: "ipc-bridge" });
 
 function recordState(entry) {
@@ -151,6 +155,53 @@ function createHttpServer() {
     if (req.method === "GET" && req.url === "/commands") {
       const commands = commandQueue.splice(0, commandQueue.length);
       return sendJson(res, 200, { commands });
+    }
+
+    // NEW: AI Response endpoints for voice assistant integration
+    if (req.method === "POST" && req.url === "/ai-response") {
+      return parseJsonBody(req, (error, payload) => {
+        if (error) {
+          return sendJson(res, 400, { error: "invalid json" });
+        }
+
+        if (!payload || typeof payload.text !== "string") {
+          return sendJson(res, 400, { error: "text is required" });
+        }
+
+        const sessionId = payload.sessionId || "default";
+        aiResponseQueue.push({
+          ...payload,
+          sessionId,
+          receivedAt: new Date().toISOString()
+        });
+        
+        // Clean old responses
+        const now = Date.now();
+        for (let i = aiResponseQueue.length - 1; i >= 0; i--) {
+          const age = now - new Date(aiResponseQueue[i].receivedAt).getTime();
+          if (age > aiResponseMaxAge) {
+            aiResponseQueue.splice(i, 1);
+          }
+        }
+        
+        return sendJson(res, 200, { ok: true });
+      });
+    }
+
+    if (req.method === "GET" && req.url.startsWith("/ai-response")) {
+      const url = new URL(req.url, `http://${httpHost}:${httpPort}`);
+      const sessionId = url.searchParams.get("session") || "default";
+      
+      // Find and return responses for this session
+      const responses = [];
+      for (let i = aiResponseQueue.length - 1; i >= 0; i--) {
+        if (aiResponseQueue[i].sessionId === sessionId) {
+          responses.push(aiResponseQueue[i]);
+          aiResponseQueue.splice(i, 1);
+        }
+      }
+      
+      return sendJson(res, 200, { responses });
     }
 
     if (req.method === "POST" && req.url === "/state") {
