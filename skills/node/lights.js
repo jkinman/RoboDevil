@@ -52,7 +52,7 @@ async function execute(command, context) {
   }
   
   // Parse color
-  const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'white'];
+  const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'white', 'warm', 'cool', 'cold'];
   let color = null;
   for (const c of colors) {
     if (cmdLower.includes(c)) {
@@ -84,7 +84,7 @@ async function execute(command, context) {
   }
   
   if (!action) {
-    return "I can turn lights on/off, set brightness (0-100%), or change colors. Try 'turn on bedroom lights' or 'set lights to 50%'";
+    return "I can turn lights on/off, set brightness (0-100%), or change colors. Try 'turn on bedroom lights', 'set lights to 50%', or 'set lights to warm/cool/red/blue'";
   }
   
   // Get lights
@@ -122,7 +122,10 @@ async function execute(command, context) {
           orange: [255, 165, 0],
           purple: [128, 0, 128],
           pink: [255, 192, 203],
-          white: [255, 255, 255]
+          white: [255, 255, 255],
+          warm: [255, 200, 100],      // Warm white (2700K)
+          cool: [200, 220, 255],      // Cool white (6500K)
+          cold: [200, 220, 255]       // Alias for cool
         };
         await haCallService('light', 'turn_on', {
           entity_id: light,
