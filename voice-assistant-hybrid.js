@@ -167,7 +167,10 @@ async function main() {
     const detectedWakeWord = wakeWords.find(w => textLower.includes(w));
     
     if (detectedWakeWord) {
-      const message = text.replace(new RegExp('.*' + detectedWakeWord, 'i'), '').trim();
+      let message = text.replace(new RegExp('.*' + detectedWakeWord, 'i'), '').trim();
+      
+      // Strip leading punctuation (commas, periods, etc.)
+      message = message.replace(/^[,.\s]+/, '');
       
       if (!message) {
         await speak("Yes? How can I help?");

@@ -30,7 +30,7 @@
     },
     
     "computer": {
-      "patterns": ["diagnostic", "run level", "level 1", "level 2", "level 3", "Squidworth"],
+      "patterns": ["diagnostic", "diagonal", "run level", "level 1", "level 2", "level 3", "Squidworth", "system check", "scan"],
       "file": "node/computer.js",
       "description": "Star Trek TNG style computer diagnostics"
     },
